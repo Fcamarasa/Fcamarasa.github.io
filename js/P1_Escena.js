@@ -13,6 +13,9 @@
 /*******************
  * TO DO: Cargar los modulos necesarios
  *******************/
+import * as THREE from "three"; // Librería principal para gráficos 3D
+import {GLTFLoader} from "../lib/GLTFLoader.module.js" // Para cargar modelos glTF
+
 
 // Variables de consenso
 let renderer, scene, camera;
@@ -21,6 +24,10 @@ let renderer, scene, camera;
 /*******************
  * TO DO: Variables globales de la aplicacion
  *******************/
+
+let figuras = []; // Array para almacenar las figuras del pentágono
+let modeloImportado; // Variable para el modelo en el centro del pentágono
+let rotacionPentagono = 0; // Ángulo de rotación del conjunto pentagonal
 
 // Acciones
 init();
@@ -35,6 +42,8 @@ function init()
     /*******************
     * TO DO: Completar el motor de render y el canvas
     *******************/
+    renderer.setClearColor(0x000000); // Color de fondo negro
+    document.body.appendChild(renderer.domElement); // Adjunta el canvas generado al DOM
 
     // Escena
     scene = new THREE.Scene();
@@ -52,19 +61,49 @@ function loadScene()
     /*******************
     * TO DO: Construir un suelo en el plano XZ
     *******************/
+    const suelo = new THREE.Mesh(
+        new THREE.PlaneGeometry(10, 10),
+        material
+    );
+    suelo.rotation.x = -Math.PI / 2; // Rotación para que quede horizontal
+    scene.add
 
     /*******************
     * TO DO: Construir una escena con 5 figuras diferentes posicionadas
     * en los cinco vertices de un pentagono regular alredor del origen
     *******************/
+    const radioPentagono = 5;
+    for (let i = 0; i < 5; i++) {
+        const angulo = (i * 2 * Math.PI) / 5; // Divide el círculo en 5 partes
+        const figura = new THREE.Mesh(
+            new THREE.BoxGeometry(1, 1, 1), // Alternativamente, usa otras geometrías
+            material
+        );
+        figura.position.set(
+            radioPentagono * Math.cos(angulo),
+            0.5,
+            radioPentagono * Math.sin(angulo)
+        );
+        figuras.push(figura); // Almacena la figura
+        scene.add(figura); // Añádela a la escena
+    }
+    
 
     /*******************
     * TO DO: Añadir a la escena un modelo importado en el centro del pentagono
     *******************/
-
+    const loader = new GLTFLoader();
+    loader.load("models/RobotExpressive.glb", function (gltf) {
+        modeloImportado = gltf.scene;
+        modeloImportado.position.y = 0.5; // Eleva el modelo ligeramente
+        scene.add(modeloImportado);
+    });
+    
     /*******************
     * TO DO: Añadir a la escena unos ejes
     *******************/
+    scene.add(new THREE.AxesHelper(5)); // Ejes visibles con longitud 5 unidades
+
 }
 
 function update()
@@ -73,6 +112,22 @@ function update()
     * TO DO: Modificar el angulo de giro de cada objeto sobre si mismo
     * y del conjunto pentagonal sobre el objeto importado
     *******************/
+   /*******************
+ * TO DO: Modificar el angulo de giro de cada objeto sobre si mismo
+ *******************/
+figuras.forEach((figura, index) => {
+    figura.rotation.y += 0.01 * (index + 1); // Cada figura rota a distinta velocidad
+});
+
+/*******************
+ * TO DO: Rotar el conjunto pentagonal sobre el objeto importado
+ *******************/
+rotacionPentagono += 0.01;
+figuras.forEach((figura) => {
+    figura.position.x = 5 * Math.cos(rotacionPentagono); // Movimiento circular
+    figura.position.z = 5 * Math.sin(rotacionPentagono);
+});
+
 }
 
 function render()
