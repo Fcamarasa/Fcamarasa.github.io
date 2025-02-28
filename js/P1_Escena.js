@@ -56,7 +56,7 @@ function init()
 
 function loadScene()
 {
-    const material = new THREE.MeshNormalMaterial( );
+    const material = new THREE.MeshNormalMaterial({color: 0x00ff00}); // Color verde
 
     /*******************
     * TO DO: Construir un suelo en el plano XZ
