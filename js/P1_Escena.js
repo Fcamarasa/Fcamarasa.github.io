@@ -76,7 +76,7 @@ function loadScene()
     for (let i = 0; i < 5; i++) {
         const angulo = (i * 2 * Math.PI) / 5; // Divide el círculo en 5 partes
         const figura = new THREE.Mesh(
-            new THREE.BoxGeometry(1, 1, 1), // Alternativamente, usa otras geometrías
+            new THREE.BoxGeometry(0.2, 0.2, 0.2), // Alternativamente, usa otras geometrías
             material
         );
         figura.position.set(
