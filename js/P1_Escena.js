@@ -72,7 +72,7 @@ function loadScene()
     * TO DO: Construir una escena con 5 figuras diferentes posicionadas
     * en los cinco vertices de un pentagono regular alredor del origen
     *******************/
-    const radioPentagono = 5;
+    const radioPentagono = 155;
     for (let i = 0; i < 5; i++) {
         const angulo = (i * 2 * Math.PI) / 5; // Divide el círculo en 5 partes
         const figura = new THREE.Mesh(
