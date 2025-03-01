@@ -10,6 +10,7 @@
 
 // Modulos necesarios
 import * as THREE from "../lib/three.module.js";
+import {TWEEN} from "../lib/tween.module.min.js";
 import {OrbitControls} from "../lib/OrbitControls.module.js";
 
 
@@ -35,6 +36,8 @@ let paddleSpeed = 1;
 let keys = {};
 let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
+let espectadores = [];
+
 // Acciones
 init();
 loadScene();
@@ -78,6 +81,11 @@ function init()
         renderer.setSize(window.innerWidth, window.innerHeight);
     });
 
+    TWEEN.now = function () {
+        return performance.now();
+    };
+    
+    
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;  // Suaviza el movimiento
     controls.dampingFactor = 0.05;
@@ -85,6 +93,7 @@ function init()
     controls.minDistance = 10;
     controls.maxDistance = 50;
     controls.maxPolarAngle = Math.PI / 2;  // No permite girar la cámara debajo del suelo
+    
 }
 
 function loadScene()
@@ -94,10 +103,11 @@ function loadScene()
     const materialSuelo = new THREE.MeshBasicMaterial({ color: 0x005500 });
 
     // Suelo
-    const suelo = new THREE.Mesh( new THREE.PlaneGeometry(anchoCampo, altoCampo), materialSuelo );
-    suelo.rotation.x = -Math.PI / 2;
+    const suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo, 1, altoCampo), materialSuelo );
+    suelo.position.set(0, -0.5, 0);
+    //suelo.rotation.x = -Math.PI / 2;
     scene.add(suelo);
-
+    
     // Líneas del campo
     const lineas = new THREE.Group();
     const puntos = [
@@ -126,13 +136,25 @@ function loadScene()
     scene.add(paredDer);
 
     // Gradas bien orientadas
-    const materialGradas = new THREE.MeshBasicMaterial({ color: 0x444444 });
+    const materialGradas = new THREE.MeshBasicMaterial({ color: 0x444444, wireframe: false });
 
-    let numeroGradas = 5;
+    let numeroGradas = 4;
     let altoGrada = altoCampo;
     let anchoGrada = 3;
+
+    const colorGradas1 = 0xA9A9A9; // Gris medio
+    const colorGradas2 = 0x696969; // Gris oscuro
+    
+    let colorGradas = colorGradas1;
+
     for (let i = 0; i < numeroGradas; i++) {
+
+        if (i % 2 === 0) { colorGradas = colorGradas1; }
+        else { colorGradas = colorGradas2; }
+
         if (i != numeroGradas - 1) {
+
+        const materialGradas = new THREE.MeshBasicMaterial({ color: colorGradas, wireframe: false });
         const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradas);
         gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) , i, -0.5);
         gradaIzq.rotation.y = Math.PI / 2;
@@ -144,6 +166,7 @@ function loadScene()
         scene.add(gradaDer);
         }
         else {
+            const materialGradas = new THREE.MeshBasicMaterial({ color: colorGradas, wireframe: false });
             const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradas);
             gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) + anchoGrada/3 , i, -0.5);
             gradaIzq.rotation.y = Math.PI / 2;
@@ -158,26 +181,34 @@ function loadScene()
     }
 
     // Espectadores bien distribuidos
-    const materialEspectador = new THREE.MeshBasicMaterial({ color: 0xffcc00 });
+
     let espectadoresPorGrada = 12;
 
     for (let fila = 0; fila < numeroGradas - 1; fila++) {
         for (let i = -(espectadoresPorGrada / 2); i <= espectadoresPorGrada / 2; i++) {
-            let cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectador);
-            cuerpo.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 0.5, i * 1.5);
-            scene.add(cuerpo);
 
+            const colorAleatorio = Math.random() * 0xffffff;
+            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorio });
+            
+            let cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectador);
             let cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectador);
             cabeza.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 1.2, i * 1.5);
+            cuerpo.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 0.5, i * 1.5);
+            scene.add(cuerpo);           
             scene.add(cabeza);
 
-            let cuerpoDer = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectador);
-            cuerpoDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (fila * anchoGrada), fila + 0.5, i * 1.5);
-            scene.add(cuerpoDer);
+            espectadores.push({ cuerpo, cabeza });
 
-            let cabezaDer = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectador);
+            const colorAleatorioDer = Math.random() * 0xffffff;
+            const materialEspectadorDer = new THREE.MeshBasicMaterial({ color: colorAleatorioDer });
+
+            let cuerpoDer = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectadorDer);
+            let cabezaDer = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectadorDer);
             cabezaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (fila * anchoGrada), fila + 1.2, i * 1.5);
+            cuerpoDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (fila * anchoGrada), fila + 0.5, i * 1.5);
             scene.add(cabezaDer);
+            scene.add(cuerpoDer);
+            espectadores.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
         }
     }
 
@@ -193,12 +224,14 @@ function loadScene()
     scene.add(porteriaDer);
 
     // Palas del Pong en las porterías
-    const materialPala = new THREE.MeshBasicMaterial({ color: 0xffff00 });
+    const materialPala = new THREE.MeshBasicMaterial({ color: 0xDC143C });
     paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
     paddleLeft.position.set(0, 1, surCampo + 0.25);
     scene.add(paddleLeft);
 
-    paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
+
+    const materialPala2 = new THREE.MeshBasicMaterial({ color: 0x0000CD });
+    paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
     scene.add(paddleRight);
 
@@ -261,6 +294,27 @@ function resetBall() {
 
     paddleLeft.position.set(0, 1, surCampo + 0.25);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
+}
+
+// Función para hacer saltar a los espectadores
+function hacerSaltarEspectadores() {
+    espectadores.forEach(({ cuerpo, cabeza }) => {
+        let alturaSalto = Math.random() * 2 + 1; // Salto aleatorio entre 1 y 3 unidades
+
+        new TWEEN.Tween(cuerpo.position)
+            .to({ y: cuerpo.position.y + alturaSalto }, 500) // Subir en 500ms
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .yoyo(true) // Vuelve a bajar
+            .repeat(1) // Una sola ida y vuelta
+            .start();
+
+        new TWEEN.Tween(cabeza.position)
+            .to({ y: cabeza.position.y + alturaSalto }, 500)
+            .easing(TWEEN.Easing.Quadratic.Out)
+            .yoyo(true)
+            .repeat(1)
+            .start();
+    });
 }
 
 function updateGame() {
@@ -345,6 +399,7 @@ function gameOver() {
     winnerMessage.style.display = 'block';
 }
 
+setInterval(hacerSaltarEspectadores, 2000)
 
 let lastTime = 0;
 const fps = 60;
@@ -358,6 +413,7 @@ function render(time) {
 
         // Llama a tu función de actualización del juego
         updateGame();
+        TWEEN.update(time); // Actualiza las animaciones pasando el tiempo actual
         controls.update();  // Importante para que los controles funcionen
         // Renderiza la escena
         renderer.render(scene, camera);
@@ -366,3 +422,10 @@ function render(time) {
     requestAnimationFrame(render);
 }
 
+
+// #TODO salto, cambio de camara, confeti y musica cuando hay gol
+// #TODO algo para cuando ganes + sonido
+// #TODO suelo general para que no este flotando todo + focos y luces
+// #TODO opción noche dia tarde con más o menos espectadores
+// #TODO boton de reset de camara
+// #TODO powerups
