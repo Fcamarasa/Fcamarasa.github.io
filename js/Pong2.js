@@ -19,6 +19,7 @@ import {OrbitControls} from "../lib/OrbitControls.module.js";
 let renderer, scene, camera;
 let paddleLeft, paddleRight, ball;
 let controls;
+let goalSound;
 
 let anchoCampo = 15;
 let altoCampo = 25;
@@ -37,6 +38,10 @@ let keys = {};
 let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
 let espectadores = [];
+
+let isCameraTransition = false;
+let originalCameraPosition = new THREE.Vector3();
+let originalCameraTarget = new THREE.Vector3();
 
 // Acciones
 init();
@@ -84,6 +89,10 @@ function init()
     TWEEN.now = function () {
         return performance.now();
     };
+
+    // Cargar sonido
+    goalSound = new Audio('./sounds/pitbull-fireball.mp3');
+    goalSound.volume = 0.5; // Ajusta el volumen (opcional)
     
     
     controls = new OrbitControls(camera, renderer.domElement);
@@ -258,14 +267,25 @@ function createUI() {
     scoreDisplay.textContent = '0 - 0';
     uiDiv.appendChild(scoreDisplay);
 
+    // Botón Play
     const playButton = document.createElement('button');
     playButton.textContent = 'Play';
     playButton.style.display = 'block';
-    playButton.onclick = startGame;
+    playButton.onclick = startGameTrue;
     playButton.style.position = "absolute";
     playButton.style.top = "10px";
     playButton.style.left = "50px";
     container.appendChild(playButton);
+
+    // Botón Reset Camera
+    const resetCameraButton = document.createElement('button');
+    resetCameraButton.textContent = 'Reset Camera';
+    resetCameraButton.style.display = 'block';
+    resetCameraButton.onclick = resetCameraTrue;
+    resetCameraButton.style.position = "absolute";
+    resetCameraButton.style.top = "10px";
+    resetCameraButton.style.left = "150px";  // Posición a la derecha del botón Play
+    container.appendChild(resetCameraButton);
 
     winnerMessage = document.createElement('div');
     winnerMessage.style.position = 'absolute';
@@ -278,6 +298,27 @@ function createUI() {
     container.appendChild(winnerMessage);
 }
 
+// Función para resetear la cámara
+function resetCamera() {
+    isCameraTransition = false;
+    controls.enabled = true;
+    
+    // Animación de vuelta a posición original
+    new TWEEN.Tween(camera.position)
+        .to(originalCameraPosition, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+
+    new TWEEN.Tween(controls.target)
+        .to(originalCameraTarget, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+}
+
+function startGameTrue() {
+    gameOver();
+    startGame();
+}
 
 function startGame() {
     isPlaying = true;
@@ -318,7 +359,7 @@ function hacerSaltarEspectadores() {
 }
 
 function updateGame() {
-    if (isPlaying) {
+    if (isPlaying && !isCameraTransition) {
         ball.position.x += ballSpeed.x;
         ball.position.z += ballSpeed.z;
 
@@ -327,22 +368,22 @@ function updateGame() {
         }
 
         if (ball.position.z <= surCampo + 1 &&
-            ball.position.x >= paddleLeft.position.x - 2.5 &&
-            ball.position.x <= paddleLeft.position.x + 2.5) {
+            ball.position.x >= paddleLeft.position.x - 2.75 &&
+            ball.position.x <= paddleLeft.position.x + 2.75) {
             ballSpeed.z *= -1;
         }
-        else if (ball.position.z <= surCampo + 0.75){
+        else if (ball.position.z <= surCampo + 1){
 
-            scoreRight++;
+            scoreLeft++;
             checkWin();
         }
 
         if (ball.position.z >= norteCampo - 1 &&
-            ball.position.x >= paddleRight.position.x - 2.5 &&
-            ball.position.x <= paddleRight.position.x + 2.5) {
+            ball.position.x >= paddleRight.position.x - 2.75 &&
+            ball.position.x <= paddleRight.position.x + 2.75) {
             ballSpeed.z *= -1;
-        }else if (ball.position.z >= norteCampo - 0.75){
-            scoreLeft++;
+        }else if (ball.position.z >= norteCampo - 1){
+            scoreRight++;
             checkWin();
         }
         scoreDisplay.textContent = `${scoreLeft} - ${scoreRight}`;
@@ -376,20 +417,88 @@ function updateGame() {
         ballSpeed.z -= 0.0025;
     }
 
+    if (!isCameraTransition) {
+        controls.update();
+    }
+
 
 }
 
 function checkWin() {
-    if (scoreLeft === 3) {
+    if (scoreRight === 3) {
         winnerMessage.textContent = 'Has perdido...';
+        ball.position.z -= 0.15;
         gameOver();
-    } else if (scoreRight === 3) {
+    } else if (scoreLeft === 3) {
         winnerMessage.textContent = '¡Has ganado!';
         gameOver();
     } else {
-        startGame();
-        
+        playGoalSound();
+        moveCameraToGrandstands();
+        setTimeout(() => {
+            resetCamera();
+        }, 6000);
+        setTimeout(() => {
+            stopGoalSound()
+            startGame();
+        }, 7000);
+
     }
+}
+
+// Añade estas nuevas funciones
+function moveCameraToGrandstands() {
+    isCameraTransition = true;
+    isPlaying = false;
+    
+    // Guardar posición original
+    originalCameraPosition.copy(camera.position);
+    originalCameraTarget.copy(controls.target);
+    
+    // Elegir una grada aleatoria (izquierda o derecha)
+    const side = Math.random() > 0.5 ? 'left' : 'right';
+    const targetPosition = new THREE.Vector3(
+        side === 'left' ? izquerdaCampo - 5 : derechaCampo + 5,
+        4,
+        0.5 * altoCampo - norteCampo
+    );
+
+    // Animación de posición de cámara
+    new TWEEN.Tween(camera.position)
+        .to(targetPosition, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+
+    // Animación del objetivo de la cámara
+    new TWEEN.Tween(controls.target)
+        .to({
+            x: side === 'left' ? izquerdaCampo - 6 : derechaCampo + 6,
+            y: 3,
+            z: targetPosition.z
+        }, 1000)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+
+    // Forzar actualización de controles
+    controls.enabled = false;
+}
+
+
+function playGoalSound() {
+    try {
+        goalSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
+        goalSound.play();
+    } catch (e) {
+        console.error("Error al reproducir sonido:", e);
+    }
+}
+function stopGoalSound() {
+    try {
+        goalSound.pause();
+    } catch (e) {
+        console.error("Error al reproducir sonido:", e);
+    }
+
 }
 
 function gameOver() {
@@ -397,6 +506,18 @@ function gameOver() {
     scoreLeft = 0;
     scoreRight = 0;
     winnerMessage.style.display = 'block';
+}
+
+// Función para resetear la cámara
+function resetCameraTrue() {
+    camera.position.set(0, 15, 22);
+    camera.lookAt(new THREE.Vector3(0, 0, 0));
+    
+    // Actualizar controles Orbit si se están usando
+    if(controls) {
+        controls.target.set(0, 0, 0);
+        controls.update();
+    }
 }
 
 setInterval(hacerSaltarEspectadores, 2000)
@@ -427,5 +548,4 @@ function render(time) {
 // #TODO algo para cuando ganes + sonido
 // #TODO suelo general para que no este flotando todo + focos y luces
 // #TODO opción noche dia tarde con más o menos espectadores
-// #TODO boton de reset de camara
 // #TODO powerups
