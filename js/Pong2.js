@@ -1,10 +1,9 @@
 /**
- * CampoPong.js
+ * Pong2.js
  * 
- * Base para un campo 3D en Three.js para un juego de Pong
- * Incluye suelo con líneas, paredes laterales, luz básica, gradas bien orientadas y figuras simples como espectadores
+ * Script para el juego del Pong 2 en Three.js
  * 
- * @author <rvivo@upv.es>, 2023
+ * @author Francesc Camarasa Mestre, 2025
  * 
  */
 
@@ -13,38 +12,75 @@ import * as THREE from "../lib/three.module.js";
 import {TWEEN} from "../lib/tween.module.min.js";
 import {OrbitControls} from "../lib/OrbitControls.module.js";
 
-
-
-// Variables de consenso
+// Variables de protocolo
 let renderer, scene, camera;
-let paddleLeft, paddleRight, ball;
 let controls;
-let goalSound;
 
+// Variables de partes de la geometría
+let suelo, cesped, paredIzq, paredDer, porteriaIzq, porteriaDer, lineas;
+let paddleLeft, paddleRight, ball;
+let farolas = [];
+let gradas = [];
+let espectadoresArray = [];
+
+//Varuables de valores de la geometría
 let anchoCampo = 15;
 let altoCampo = 25;
+
+let numeroGradas = 4;
+let altoGrada = altoCampo;
+let anchoGrada = 3;
+let espectadoresPorGrada = 12;
+
+let anchoPared = 0.5;
+let profundidadPared = 2;
 
 let derechaCampo = anchoCampo / 2;
 let izquerdaCampo = -anchoCampo / 2;
 let norteCampo = altoCampo / 2;
 let surCampo = -altoCampo / 2;
 
-let numeroGradas = 4;
-let altoGrada = altoCampo;
-let anchoGrada = 3;
+// Materiales
+const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
+const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+const materialSuelo = new THREE.MeshStandardMaterial({ 
+    color: 0x8B4513, // SaddleBrown
+    metalness: 0.3,
+    roughness: 0.9
+});
+const materialLinea = new THREE.LineBasicMaterial({ color: 0xffffff });
+const materialCesped = new THREE.MeshStandardMaterial({ 
+    color: 0x005500, 
+    roughness: 0.9,
+    metalness: 0.1
+});
+const materialPared = new THREE.MeshBasicMaterial({ color: 0x222222 });
+const materialRed = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
+const materialPala = new THREE.MeshBasicMaterial({ color: 0xDC143C });
+const materialPala2 = new THREE.MeshBasicMaterial({ color: 0x0000CD });
+const materialPelota = new THREE.MeshStandardMaterial({ 
+    color: 0xffa500, // Naranja
+});
 
+// Variables de UI
+let scoreDisplay, winnerMessage, firstTo3Message;
+
+// Variables de estado
+let goalSound;
 let ballSpeed = { x: 0, z: 0 };
 let scoreLeft = 0, scoreRight = 0;
-let scoreDisplay, winnerMessage, firstTo3Message;
-let isPlaying = false;
-let paddleSpeed = 1;
 let keys = {};
 let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
-let espectadores = [];
 let goalCelebration = false;
 let goalscored = false;
 let isCameraTransition = false;
+let paddleSpeed = 1;
+let isPlaying = false;
+let espectadores = [];
+
+
+// Variables de cámara
 let originalCameraPosition = new THREE.Vector3();
 let originalCameraTarget = new THREE.Vector3();
 
@@ -102,7 +138,7 @@ function init()
     goalSound = new Audio('./sounds/pitbull-fireball.mp3');
     goalSound.volume = 0.5; // Ajusta el volumen (opcional)
     
-    
+    // Crear controles para el "giroscopio"
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;  // Suaviza el movimiento
     controls.dampingFactor = 0.05;
@@ -116,19 +152,12 @@ function init()
 function loadScene()
 {   
     // Suelo
-    const materialSuelo = new THREE.MeshStandardMaterial({ 
-        color: 0x8B4513, // SaddleBrown
-        metalness: 0.3,
-        roughness: 0.9
-    });
-    const suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo + (numeroGradas*anchoGrada) + 30, 1, altoCampo + 12.5), materialSuelo );
+    suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo + (numeroGradas*anchoGrada) + 30, 1, altoCampo + 12.5), materialSuelo );
     suelo.position.set(0, -0.6, 0);
-    //suelo.rotation.x = -Math.PI / 2;
     scene.add(suelo);
 
     // Líneas del campo
-    const materialLinea = new THREE.LineBasicMaterial({ color: 0xffffff });
-    const lineas = new THREE.Group();
+    lineas = new THREE.Group();
     const puntos = [
         new THREE.Vector3(izquerdaCampo, 0.01, 0), new THREE.Vector3(derechaCampo, 0.01, 0), // Línea central
         new THREE.Vector3(izquerdaCampo, 0.01, norteCampo), new THREE.Vector3(izquerdaCampo, 0.01, surCampo), // Borde izquierdo
@@ -144,78 +173,34 @@ function loadScene()
     scene.add(lineas);
 
     // Campo de juego con césped
-    const materialCesped = new THREE.MeshStandardMaterial({ 
-        color: 0x005500, 
-        roughness: 0.9,
-        metalness: 0.1
-    });
-    const cesped = new THREE.Mesh(
+    cesped = new THREE.Mesh(
         new THREE.BoxGeometry(anchoCampo, 0.2, altoCampo),
         materialCesped
     );
     cesped.position.set(0, -0.1, 0);
     scene.add(cesped);
-    const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
-    const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+
     // Farolas en las esquinas
-    function crearFarola(x, z) {
-        const grupo = new THREE.Group();
-        
-        // Poste
-        const poste = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.1, 8),
-            materialMetal
-        );
-        poste.position.set(x, 4, z);
-        
-        // Lámpara
-        const lampara = new THREE.Mesh(
-            new THREE.BoxGeometry(0.5, 0.3, 0.5),
-            new THREE.MeshStandardMaterial({ color: 0xffff00 })
-        );
-        lampara.position.set(x, 8, z);
-        lampara.rotation.y = Math.PI/4;
-        
-        // Base
-        const base = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.3, 0.3, 0.5),
-            bordilloMaterial
-        );
-        base.position.set(x, 0.25, z);
-        
-        grupo.add(poste);
-        grupo.add(lampara);
-        grupo.add(base);
-        
-        return grupo;
-    }
+    farolas = [
+        crearFarola(izquerdaCampo - 2, norteCampo + 2),
+        crearFarola(derechaCampo + 2, norteCampo + 2),
+        crearFarola(izquerdaCampo - 2, surCampo - 2),
+        crearFarola(derechaCampo + 2, surCampo - 2)
+    ];
+    farolas.forEach(f => scene.add(f));
     
-        scene.add(crearFarola(izquerdaCampo - 2, norteCampo + 2));
-        scene.add(crearFarola(derechaCampo + 2, norteCampo + 2));
-        scene.add(crearFarola(izquerdaCampo - 2, surCampo - 2));
-        scene.add(crearFarola(derechaCampo + 2, surCampo - 2));
-    
-
-    
-    const materialPared = new THREE.MeshBasicMaterial({ color: 0x222222 });
     // Paredes laterales
-    let anchoPared = 0.5;
-    let profundidadPared = 2;
-
-
-    const paredIzq = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
+    paredIzq = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredIzq.position.set(izquerdaCampo - (anchoPared / 2), 1, 0);
     scene.add(paredIzq);
 
-    const paredDer = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
+    paredDer = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredDer.position.set(derechaCampo + (anchoPared / 2), 1, 0);
     scene.add(paredDer);
 
     // Gradas bien orientadas
     const colorGradas1Izq = 0xADD8E6; // Light Blue
     const colorGradas2Izq = 0x4682B4; // Steel Blue
-    
-
     const colorGradas1Der = 0xFFB6C1; // Gris medio
     const colorGradas2Der = 0xCD5C5C; // Gris oscuro
 
@@ -266,14 +251,11 @@ function loadScene()
 
     // Espectadores bien distribuidos
 
-    let espectadoresPorGrada = 12;
-
     for (let fila = 0; fila < numeroGradas - 1; fila++) {
         for (let i = -(espectadoresPorGrada / 2); i <= espectadoresPorGrada / 2; i++) {
 
             const colorAleatorio = Math.random() * 0xffffff;
             const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorio });
-            
             let cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectador);
             let cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectador);
             cabeza.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 1.2, i * 1.5);
@@ -298,31 +280,24 @@ function loadScene()
 
 
     // Porterías con redes
-    const materialRed = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
-    const porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
+    porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaIzq.position.set(0, 1, norteCampo);
     scene.add(porteriaIzq);
 
-    const porteriaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
+    porteriaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaDer.position.set(0, 1, surCampo);
     scene.add(porteriaDer);
 
     // Palas del Pong en las porterías
-    const materialPala = new THREE.MeshBasicMaterial({ color: 0xDC143C });
     paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
     paddleLeft.position.set(0, 1, surCampo + 0.25);
     scene.add(paddleLeft);
 
-
-    const materialPala2 = new THREE.MeshBasicMaterial({ color: 0x0000CD });
     paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
     scene.add(paddleRight);
 
     // Pelota
-    const materialPelota = new THREE.MeshStandardMaterial({ 
-        color: 0xffa500, // Naranja
-    });
     ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), materialPelota);
     ball.position.set(0, 0.5, 0);
     scene.add(ball);
@@ -330,8 +305,114 @@ function loadScene()
 
 }
 
+// Farolas en las esquinas
+function crearFarola(x, z) {
+    const grupo = new THREE.Group();
+    
+    // Poste
+    const poste = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.1, 0.1, 8),
+        materialMetal
+    );
+    poste.position.set(x, 4, z);
+    
+    // Lámpara
+    const lampara = new THREE.Mesh(
+        new THREE.BoxGeometry(0.5, 0.3, 0.5),
+        new THREE.MeshStandardMaterial({ color: 0xffff00 })
+    );
+    lampara.position.set(x, 8, z);
+    lampara.rotation.y = Math.PI/4;
+    
+    // Base
+    const base = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.3, 0.3, 0.5),
+        bordilloMaterial
+    );
+    base.position.set(x, 0.25, z);
+    
+    grupo.add(poste);
+    grupo.add(lampara);
+    grupo.add(base);
+    
+    return grupo;
+}
+
+
+function updateFieldGeometry() {
+    
+    // Actualizar suelo
+    suelo.geometry.dispose();
+    suelo.geometry = new THREE.BoxGeometry(
+        anchoCampo + (numeroGradas*anchoGrada) + 30, 
+        1, 
+        altoCampo + 12.5
+    );
+
+    // Actualizar césped
+    cesped.geometry.dispose();
+    cesped.geometry = new THREE.BoxGeometry(anchoCampo, 0.2, altoCampo);
+
+    // Actualizar paredes
+    scene.remove(paredIzq)
+    paredIzq = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
+    paredIzq.position.set(izquerdaCampo - (anchoPared / 2), 1, 0);
+    scene.add(paredIzq);
+
+    scene.remove(paredDer)
+    paredDer = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
+    paredDer.position.set(derechaCampo + (anchoPared / 2), 1, 0);
+    scene.add(paredDer);
+
+    // Actualizar porterías
+    scene.remove(porteriaIzq);
+    porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
+    porteriaIzq.position.set(0, 1, norteCampo);
+    scene.add(porteriaIzq);
+
+    scene.remove(porteriaDer);
+    porteriaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
+    porteriaDer.position.set(0, 1, surCampo);
+    scene.add(porteriaDer);
+
+    // Actualizar líneas del campo
+    scene.remove(lineas);
+    lineas = new THREE.Group();
+    
+    const puntos = [
+        new THREE.Vector3(izquerdaCampo, 0.01, 0), new THREE.Vector3(derechaCampo, 0.01, 0), // Línea central
+        new THREE.Vector3(izquerdaCampo, 0.01, norteCampo), new THREE.Vector3(izquerdaCampo, 0.01, surCampo), // Borde izquierdo
+        new THREE.Vector3(derechaCampo, 0.01, norteCampo), new THREE.Vector3(derechaCampo, 0.01, surCampo),  // Borde derecho
+        new THREE.Vector3(derechaCampo, 0.01, norteCampo), new THREE.Vector3(izquerdaCampo, 0.01, norteCampo),
+        new THREE.Vector3(izquerdaCampo, 0.01, surCampo), new THREE.Vector3(derechaCampo, 0.01, surCampo)
+
+    ];
+    for (let i = 0; i < puntos.length; i += 2) {
+        const geometry = new THREE.BufferGeometry().setFromPoints([puntos[i], puntos[i + 1]]);
+        const linea = new THREE.Line(geometry, materialLinea);
+        lineas.add(linea);
+    }
+    scene.add(lineas);
+
+    // Actualizar palas
+    paddleLeft.position.set(0, 1, surCampo + 0.25);
+    paddleRight.position.set(0, 1, norteCampo - 0.25);
+
+    // Actualizar farolas
+    farolas.forEach(f => scene.remove(f));
+    farolas = [
+        crearFarola(izquerdaCampo - 2, norteCampo + 2),
+        crearFarola(derechaCampo + 2, norteCampo + 2),
+        crearFarola(izquerdaCampo - 2, surCampo - 2),
+        crearFarola(derechaCampo + 2, surCampo - 2)
+    ];
+    farolas.forEach(f => scene.add(f));
+}
+
 function createUI() {
     const container = document.getElementById('container');
+
+    // Marcador
     const uiDiv = document.createElement('div');
     uiDiv.style.position = 'absolute';
     uiDiv.style.top = '20px';
@@ -345,6 +426,7 @@ function createUI() {
     scoreDisplay.textContent = '0 - 0';
     uiDiv.appendChild(scoreDisplay);
 
+    // Mensaje de primero a tres
     const uiDiv2 = document.createElement('div');
     uiDiv2.style.position = 'absolute';
     uiDiv2.style.top = '50px';
@@ -378,6 +460,7 @@ function createUI() {
     resetCameraButton.style.left = "150px";  // Posición a la derecha del botón Play
     container.appendChild(resetCameraButton);
 
+    // Mensaje de ganador
     winnerMessage = document.createElement('div');
     winnerMessage.style.position = 'absolute';
     winnerMessage.style.top = '150px';
@@ -398,28 +481,33 @@ function createUI() {
     controlsDiv.style.borderRadius = '10px';
     container.appendChild(controlsDiv);
 
-    // Variables ajustables (asegúrate de declararlas en el ámbito global)
+    // Variables ajustables
 
     createSlider(
         'Ancho Campo',
-        20,
-        100,
+        10,
+        30,
         1,
         anchoCampo,
         value => {
             anchoCampo = value;
-            // Aquí deberías actualizar la geometría del campo si es necesario
+            derechaCampo = anchoCampo / 2;
+            izquerdaCampo = -anchoCampo / 2;
+            updateFieldGeometry();
         }
     );
 
     createSlider(
         'Alto Campo',
-        40,
-        200,
+        15,
+        35,
         1,
         altoCampo,
         value => {
             altoCampo = value;
+            norteCampo = altoCampo / 2;
+            surCampo = -altoCampo / 2;
+            updateFieldGeometry();
         }
     );
 
@@ -475,11 +563,13 @@ function resetCamera() {
         .start();
 }
 
+//Función para iniciar el juego desde 0
 function startGameTrue() {
     gameOver();
     startGame();
 }
 
+//Función para iniciar el juego tras gol (sin reiniciar marcador)
 function startGame() {
     isPlaying = true;
     resetBall();
@@ -488,6 +578,7 @@ function startGame() {
     winnerMessage.style.display = 'none';
 }
 
+// Función para resetear el balón al centro del campo
 function resetBall() {
     ball.position.set(0, 0.5, 0);
     ballSpeed.x = 0;
@@ -497,7 +588,7 @@ function resetBall() {
     paddleRight.position.set(0, 1, norteCampo - 0.25);
 }
 
-// Función para hacer saltar a los espectadores
+// Función para hacer saltar a los espectadores cuando no hay gol
 function hacerSaltarEspectadores(minAltura, maxAltura, jumpInMs) {
     
     if (!goalCelebration){
@@ -521,6 +612,7 @@ function hacerSaltarEspectadores(minAltura, maxAltura, jumpInMs) {
     }
 }
 
+// Función para hacer saltar a los espectadores cuando hay un gol
 function hacerSaltarEspectadoresWhenGoal(minAltura, maxAltura, jumpInMs) {
 
     if (goalCelebration){
@@ -544,6 +636,7 @@ function hacerSaltarEspectadoresWhenGoal(minAltura, maxAltura, jumpInMs) {
     }
 }
 
+// Función para actualizar el estado del juego
 function updateGame() {
     if (isPlaying && !isCameraTransition) {
         ball.position.x += ballSpeed.x;
@@ -614,6 +707,7 @@ function updateGame() {
 
 }
 
+// Función para determinar si el juego ha terminado
 function checkWin(side) {
     if (scoreRight === 3) {
         winnerMessage.textContent = 'Has perdido...';
@@ -643,7 +737,7 @@ function checkWin(side) {
     }
 }
 
-// Añade estas nuevas funciones
+// Función para enfocar a la grada que ha marcado gol
 function moveCameraToGrandstands(side) {
     isCameraTransition = true;
     isPlaying = false;
@@ -679,7 +773,7 @@ function moveCameraToGrandstands(side) {
     controls.enabled = false;
 }
 
-
+// Función para reproducir el sonido de gol
 function playGoalSound() {
     try {
         goalSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
@@ -697,6 +791,7 @@ function stopGoalSound() {
 
 }
 
+// Función para terminar el juego y resetear el marcador
 function gameOver() {
     isPlaying = false;
     scoreLeft = 0;
@@ -719,7 +814,7 @@ function resetCameraTrue() {
 setInterval(() => hacerSaltarEspectadores(0, 0.75, 300), 1000);
 setInterval(() => hacerSaltarEspectadoresWhenGoal(0, 3, 100), 250);
 
-
+//Limitar a 60 fps
 let lastTime = 0;
 const fps = 60;
 const interval = 1000 / fps;
