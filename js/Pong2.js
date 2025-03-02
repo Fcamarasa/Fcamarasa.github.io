@@ -93,6 +93,7 @@ const materialPelota = new THREE.MeshStandardMaterial({
 
 // Variables de UI
 let scoreDisplay, winnerMessage, firstTo3Message, controlesMessage;
+let playButton;
 
 // Variables de estado
 let goalSound, goalSound2;
@@ -108,6 +109,7 @@ let goalscored = false;
 let isCameraTransition = false;
 let paddleSpeed = 1;
 let isPlaying = false;
+let isGameRunning = false; // Variable para rastrear el estado del juego
 
 
 
@@ -143,7 +145,7 @@ function init()
 
     // Camara
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 100 );
-    camera.position.set(0, 20, 25 );
+    camera.position.set(0, 20, 25);
     camera.lookAt( new THREE.Vector3(0, 0, 0) );
 
     // Luz
@@ -552,6 +554,8 @@ function updateFieldGeometry() {
 function createUI() {
     const container = document.getElementById('container');
 
+
+
     // Estilos base para los elementos comunes
     const baseButtonStyle = {
         padding: '8px 20px',
@@ -612,7 +616,7 @@ function createUI() {
     buttonContainer.style.gap = '10px';
     container.appendChild(buttonContainer);
 
-    const playButton = document.createElement('button');
+    playButton = document.createElement('button');
     playButton.textContent = 'Jugar';
     Object.assign(playButton.style, baseButtonStyle, {
         backgroundColor: '#4CAF50',
@@ -620,7 +624,29 @@ function createUI() {
     });
     playButton.onmouseover = () => playButton.style.backgroundColor = '#45a049';
     playButton.onmouseout = () => playButton.style.backgroundColor = '#4CAF50';
-    playButton.onclick = startGameTrue;
+    playButton.onclick = () => {
+        if (!isGameRunning) {
+            // Ocultar controles y cambiar texto del botón
+            controlsDiv.style.display = 'none';
+            playButton.textContent = 'Detener Partida';
+            isGameRunning = true;
+            startGameTrue();
+        }
+        else {
+            
+            scoreLeft = 0;
+            scoreRight = 0;
+            scoreDisplay.textContent = `${scoreLeft} - ${scoreRight}`;
+            gameOver();
+            crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
+            crearEspectadores();
+            isGameRunning = false;
+            playButton.textContent = 'Jugar';
+            winnerMessage.style.display = 'none';
+            controlsDiv.style.display = 'block';
+        }
+        
+    };
     buttonContainer.appendChild(playButton);
 
     const resetCameraButton = document.createElement('button');
@@ -726,7 +752,7 @@ function createUI() {
     // Mensaje de ganador mejorado
     winnerMessage = document.createElement('div');
     winnerMessage.style.position = 'absolute';
-    winnerMessage.style.top = '50%';
+    winnerMessage.style.top = '20%';
     winnerMessage.style.left = '50%';
     winnerMessage.style.transform = 'translate(-50%, -50%)';
     winnerMessage.style.fontSize = '48px';
@@ -737,6 +763,8 @@ function createUI() {
     winnerMessage.style.backgroundColor = 'rgba(0,0,0,0.7)';
     winnerMessage.style.display = 'none';
     container.appendChild(winnerMessage);
+
+    controlsDiv.style.display = 'block';
 }
 
 // Función para resetear la cámara
@@ -1054,7 +1082,7 @@ function checkWin(side) {
         }, 10500);
         setTimeout(() => {
             stopEndSound();
-            gameOver();
+            playButton.textContent = 'Volver a jugar';
             goalscored = false;
         }, 11000);
     } else if (scoreLeft === 3) {
@@ -1088,7 +1116,7 @@ function checkWin(side) {
         }, 10500);
         setTimeout(() => {
             stopEndSound();
-            gameOver();
+            playButton.textContent = 'Volver a jugar';
             goalscored = false;
         }, 11000);
     } else {
@@ -1108,7 +1136,9 @@ function checkWin(side) {
         }, 4000);
         setTimeout(() => {
             stopGoalSound();
-            startGame();
+            if (isGameRunning){
+                startGame();
+            }
             goalscored = false;
         }, 4250);
 
@@ -1244,11 +1274,12 @@ function gameOver() {
     isPlaying = false;
     scoreLeft = 0;
     scoreRight = 0;
+    resetBall();
 }
 
 // Función para resetear la cámara
 function resetCameraTrue() {
-    camera.position.set(0, 15, 22);
+    camera.position.set(0, 20, 25);
     camera.lookAt(new THREE.Vector3(0, 0, 0));
     
     // Actualizar controles Orbit si se están usando
@@ -1259,7 +1290,7 @@ function resetCameraTrue() {
 }
 
 function createConfetti(position, side) {
-    const confettiCount = 200;
+    const confettiCount = 300;
     const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF];
 
     for (let i = 0; i < confettiCount; i++) {
@@ -1273,7 +1304,7 @@ function createConfetti(position, side) {
         confetti.position.set(
             position.x + (Math.random() - 0.5) * 10,
             position.y + Math.random() * 10,
-            position.z + (Math.random() - 0.5) * 10
+            position.z + (Math.random() - 0.5) * 20
         );
 
         // Animación
@@ -1281,7 +1312,7 @@ function createConfetti(position, side) {
             .to({
                 y: -10,
                 x: confetti.position.x + (side === 'left' ? -10 : 10) * Math.random(),
-                z: confetti.position.z + (Math.random() - 0.5) * 20
+                z: confetti.position.z + (Math.random() - 0.5) * 30
             }, 3000 + Math.random() * 2000)
             .easing(TWEEN.Easing.Quadratic.In)
             .start();
@@ -1331,3 +1362,6 @@ function render(time) {
 
 // #TODO focos y luces
 // #TODO Textures
+
+// #TODO revisar valors incial camps
+// #TODO revisar temps animació victoria
