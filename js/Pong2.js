@@ -66,7 +66,7 @@ const materialPelota = new THREE.MeshStandardMaterial({
 });
 
 // Variables de UI
-let scoreDisplay, winnerMessage, firstTo3Message;
+let scoreDisplay, winnerMessage, firstTo3Message, controlesMessage;
 
 // Variables de estado
 let goalSound, goalSound2;
@@ -518,7 +518,7 @@ function createUI() {
     uiDiv.style.top = '20px';
     uiDiv.style.left = '50%';
     uiDiv.style.transform = 'translateX(-50%)';
-    uiDiv.style.fontSize = '24px';
+    uiDiv.style.fontSize = '40px';
     uiDiv.style.color = 'white';
     container.appendChild(uiDiv);
 
@@ -529,16 +529,30 @@ function createUI() {
     // Mensaje de primero a tres
     const uiDiv2 = document.createElement('div');
     uiDiv2.style.position = 'absolute';
-    uiDiv2.style.top = '50px';
+    uiDiv2.style.top = '60px';
     uiDiv2.style.left = '50%';
     uiDiv2.style.transform = 'translateX(-50%)';
-    uiDiv2.style.fontSize = '24px';
+    uiDiv2.style.fontSize = '15px';
     uiDiv2.style.color = 'white';
     container.appendChild(uiDiv2);
 
     firstTo3Message = document.createElement("div");
     firstTo3Message.textContent = "¡El primero que llegue a 3 goles gana!";
     uiDiv2.appendChild(firstTo3Message);
+
+    // Mensaje de primero a tres
+    const uiDiv3 = document.createElement('div');
+    uiDiv3.style.position = 'absolute';
+    uiDiv3.style.top = '90px';
+    uiDiv3.style.left = '50%';
+    uiDiv3.style.transform = 'translateX(-50%)';
+    uiDiv3.style.fontSize = '15px';
+    uiDiv3.style.color = 'white';
+    container.appendChild(uiDiv3);
+
+    controlesMessage = document.createElement("div");
+    controlesMessage.textContent = "Use las flechas ⬅️ y ➡️ para mover tu pala";
+    uiDiv3.appendChild(controlesMessage);
 
     // Botón Play
     const playButton = document.createElement('button');
@@ -574,17 +588,19 @@ function createUI() {
     // Contenedor para los sliders (lado izquierdo)
     const controlsDiv = document.createElement('div');
     controlsDiv.style.position = 'absolute';
-    controlsDiv.style.top = '100px';
+    controlsDiv.style.top = '50px';
     controlsDiv.style.left = '20px';
     controlsDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
     controlsDiv.style.padding = '15px';
     controlsDiv.style.borderRadius = '10px';
+    controlsDiv.style.marginBottom = "0px";
+    controlsDiv.style.marginTop = "10px";
     container.appendChild(controlsDiv);
 
     // Variables ajustables
 
     createSlider(
-        'Ancho Campo',
+        'Anchura del campo',
         10,
         30,
         1,
@@ -598,7 +614,7 @@ function createUI() {
     );
 
     createSlider(
-        'Alto Campo',
+        'Altura del campo',
         15,
         35,
         1,
@@ -624,7 +640,7 @@ function createUI() {
     );
 
     createSlider(
-        'Número de Espectadores',
+        'Espectadores',
         2,
         25,
         1,
@@ -651,12 +667,16 @@ function createUI() {
     // Función para crear sliders
     function createSlider(label, min, max, step, value, onChange) {
         const sliderContainer = document.createElement('div');
-        sliderContainer.style.margin = '10px 0';
+        sliderContainer.style.margin = '0px 0px';
         
         const labelElement = document.createElement('span');
         labelElement.textContent = label + ': ';
+        labelElement.style.alignItems = 'center';
         labelElement.style.color = 'white';
-        labelElement.style.marginRight = '10px';
+        labelElement.style.width = "150px";
+        labelElement.style.height = "35px";
+        labelElement.style.display = 'inline-block';
+
         
         const slider = document.createElement('input');
         slider.type = 'range';
@@ -664,7 +684,8 @@ function createUI() {
         slider.max = max;
         slider.step = step;
         slider.value = value;
-        slider.style.width = '200px';
+        slider.style.width = '150px';
+        slider.style.height = "5px";
         
         const valueDisplay = document.createElement('span');
         valueDisplay.textContent = value;
@@ -985,4 +1006,6 @@ function render(time) {
 // #TODO confeti cuando hay gol
 // #TODO algo para cuando ganes + sonido
 // #TODO focos y luces
+// #TODO Textures
 // #TODO powerups
+// #TODO amagar UI quan tal i cual
