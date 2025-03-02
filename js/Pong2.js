@@ -45,6 +45,30 @@ let surCampo = -altoCampo / 2;
 
 let fondo = 0;
 
+//confeti
+
+let confettiParticles = [];
+const confettiMaterial = new THREE.SpriteMaterial({
+    color: 0xFFFFFF,
+    map: new THREE.CanvasTexture(generateConfettiTexture()),
+    blending: THREE.AdditiveBlending,
+    opacity: 0.8
+});
+
+function generateConfettiTexture() {
+    const canvas = document.createElement('canvas');
+    canvas.width = 32;
+    canvas.height = 32;
+    const ctx = canvas.getContext('2d');
+    
+    ctx.beginPath();
+    ctx.arc(16, 16, 15, 0, 2 * Math.PI);
+    ctx.fillStyle = 'white';
+    ctx.fill();
+    
+    return canvas;
+}
+
 // Materiales
 const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
 const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
@@ -1020,6 +1044,7 @@ function checkWin(side) {
         }, 4000);
         setTimeout(() => {
             resetCamera();
+            createConfetti(new THREE.Vector3(derechaCampo + 10, 15, 0), 'right');
         }, 5000);
         setTimeout(() => {
             moveCameraToGrandstandsEnd('right',1500);
@@ -1051,6 +1076,7 @@ function checkWin(side) {
         }, 4000);
         setTimeout(() => {
             resetCamera();
+            createConfetti(new THREE.Vector3(izquerdaCampo - 10, 15, 0), 'left');
         }, 5000);
         setTimeout(() => {
             moveCameraToGrandstandsEnd('left',1500);
@@ -1071,6 +1097,9 @@ function checkWin(side) {
         moveCameraToGrandstands(side,700);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             goalCelebration = true;
+            if (side === 'left'){ createConfetti(new THREE.Vector3(izquerdaCampo - 10, 10, 0), 'left'); }
+            else if (side === "right") { createConfetti(new THREE.Vector3(derechaCampo + 10, 10, 0), 'right');}
+            
         }, 800);
         setTimeout(() => {
             resetCamera();
@@ -1227,6 +1256,47 @@ function resetCameraTrue() {
     if(controls) {
         controls.target.set(0, 0, 0);
         controls.update();
+    }
+}
+
+function createConfetti(position, side) {
+    const confettiCount = 200;
+    const colors = [0xFF0000, 0x00FF00, 0x0000FF, 0xFFFF00, 0xFF00FF, 0x00FFFF];
+
+    for (let i = 0; i < confettiCount; i++) {
+        const material = confettiMaterial.clone();
+        material.color.setHex(colors[Math.floor(Math.random() * colors.length)]);
+        
+        const confetti = new THREE.Sprite(material);
+        confetti.scale.set(0.2, 0.2, 0.2);
+        
+        // Posición inicial
+        confetti.position.set(
+            position.x + (Math.random() - 0.5) * 10,
+            position.y + Math.random() * 10,
+            position.z + (Math.random() - 0.5) * 10
+        );
+
+        // Animación
+        new TWEEN.Tween(confetti.position)
+            .to({
+                y: -10,
+                x: confetti.position.x + (side === 'left' ? -10 : 10) * Math.random(),
+                z: confetti.position.z + (Math.random() - 0.5) * 20
+            }, 3000 + Math.random() * 2000)
+            .easing(TWEEN.Easing.Quadratic.In)
+            .start();
+
+        new TWEEN.Tween(confetti)
+            .to({}, 3000 + Math.random() * 2000)
+            .onComplete(() => {
+                scene.remove(confetti);
+                confettiParticles = confettiParticles.filter(p => p !== confetti);
+            })
+            .start();
+
+        scene.add(confetti);
+        confettiParticles.push(confetti);
     }
 }
 
