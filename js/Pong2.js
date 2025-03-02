@@ -38,7 +38,7 @@ let keys = {};
 let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
 let espectadores = [];
-
+let goalCelebration = false;
 let isCameraTransition = false;
 let originalCameraPosition = new THREE.Vector3();
 let originalCameraTarget = new THREE.Vector3();
@@ -151,37 +151,51 @@ function loadScene()
     let altoGrada = altoCampo;
     let anchoGrada = 3;
 
-    const colorGradas1 = 0xA9A9A9; // Gris medio
-    const colorGradas2 = 0x696969; // Gris oscuro
+    const colorGradas1Izq = 0xADD8E6; // Light Blue
+    const colorGradas2Izq = 0x4682B4; // Steel Blue
     
-    let colorGradas = colorGradas1;
+
+    const colorGradas1Der = 0xFFB6C1; // Gris medio
+    const colorGradas2Der = 0xCD5C5C; // Gris oscuro
+
+    let colorGradasIzq = colorGradas1Izq;
+    let colorGradasDer = colorGradas1Der;
 
     for (let i = 0; i < numeroGradas; i++) {
 
-        if (i % 2 === 0) { colorGradas = colorGradas1; }
-        else { colorGradas = colorGradas2; }
+        if (i % 2 === 0) {
+            colorGradasIzq = colorGradas1Izq;
+            colorGradasDer = colorGradas1Der;
+        }
+        else {
+             colorGradasDer = colorGradas2Der
+             colorGradasIzq = colorGradas2Izq;
+        }
 
         if (i != numeroGradas - 1) {
 
-        const materialGradas = new THREE.MeshBasicMaterial({ color: colorGradas, wireframe: false });
-        const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradas);
+        const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq, wireframe: false });
+        const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradasIzq);
         gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) , i, -0.5);
         gradaIzq.rotation.y = Math.PI / 2;
         scene.add(gradaIzq);
-
-        const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradas);
+        
+        const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer, wireframe: false });
+        const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradasDer);
         gradaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (i * anchoGrada) , i, -0.5);
         gradaDer.rotation.y = -Math.PI / 2;
         scene.add(gradaDer);
+        
         }
         else {
-            const materialGradas = new THREE.MeshBasicMaterial({ color: colorGradas, wireframe: false });
-            const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradas);
+            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq, wireframe: false });
+            const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradasIzq);
             gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) + anchoGrada/3 , i, -0.5);
             gradaIzq.rotation.y = Math.PI / 2;
             scene.add(gradaIzq);
-    
-            const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradas);
+
+            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer, wireframe: false });
+            const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradasDer);
             gradaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (i * anchoGrada) - anchoGrada/3 , i, -0.5);
             gradaDer.rotation.y = -Math.PI / 2;
             scene.add(gradaDer);
@@ -338,24 +352,50 @@ function resetBall() {
 }
 
 // Función para hacer saltar a los espectadores
-function hacerSaltarEspectadores() {
-    espectadores.forEach(({ cuerpo, cabeza }) => {
-        let alturaSalto = Math.random() * 2 + 1; // Salto aleatorio entre 1 y 3 unidades
+function hacerSaltarEspectadores(minAltura, maxAltura, jumpInMs) {
+    
+    if (!goalCelebration){
+        espectadores.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
 
-        new TWEEN.Tween(cuerpo.position)
-            .to({ y: cuerpo.position.y + alturaSalto }, 500) // Subir en 500ms
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .yoyo(true) // Vuelve a bajar
-            .repeat(1) // Una sola ida y vuelta
-            .start();
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, jumpInMs) // Subir en 500ms
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true) // Vuelve a bajar
+                .repeat(1) // Una sola ida y vuelta
+                .start();
 
-        new TWEEN.Tween(cabeza.position)
-            .to({ y: cabeza.position.y + alturaSalto }, 500)
-            .easing(TWEEN.Easing.Quadratic.Out)
-            .yoyo(true)
-            .repeat(1)
-            .start();
-    });
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, jumpInMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true)
+                .repeat(1)
+                .start();
+        });
+    }
+}
+
+function hacerSaltarEspectadoresWhenGoal(minAltura, maxAltura, jumpInMs) {
+
+    if (goalCelebration){
+        espectadores.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
+
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, jumpInMs) // Subir en 500ms
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true) // Vuelve a bajar
+                .repeat(1) // Una sola ida y vuelta
+                .start();
+
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, jumpInMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true)
+                .repeat(1)
+                .start();
+        });
+    }
 }
 
 function updateGame() {
@@ -375,7 +415,8 @@ function updateGame() {
         else if (ball.position.z <= surCampo + 1){
 
             scoreLeft++;
-            checkWin();
+            checkWin('left');
+            
         }
 
         if (ball.position.z >= norteCampo - 1 &&
@@ -384,7 +425,7 @@ function updateGame() {
             ballSpeed.z *= -1;
         }else if (ball.position.z >= norteCampo - 1){
             scoreRight++;
-            checkWin();
+            checkWin('right');
         }
         scoreDisplay.textContent = `${scoreLeft} - ${scoreRight}`;
 
@@ -424,7 +465,7 @@ function updateGame() {
 
 }
 
-function checkWin() {
+function checkWin(side) {
     if (scoreRight === 3) {
         winnerMessage.textContent = 'Has perdido...';
         ball.position.z -= 0.15;
@@ -434,20 +475,26 @@ function checkWin() {
         gameOver();
     } else {
         playGoalSound();
-        moveCameraToGrandstands();
+        moveCameraToGrandstands(side);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            goalCelebration = true;
+        }, 1000);
         setTimeout(() => {
             resetCamera();
-        }, 6000);
+        }, 3000);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            goalCelebration = false;
+        }, 3500);
         setTimeout(() => {
-            stopGoalSound()
+            stopGoalSound();
             startGame();
-        }, 7000);
+        }, 4250);
 
     }
 }
 
 // Añade estas nuevas funciones
-function moveCameraToGrandstands() {
+function moveCameraToGrandstands(side) {
     isCameraTransition = true;
     isPlaying = false;
     
@@ -456,7 +503,6 @@ function moveCameraToGrandstands() {
     originalCameraTarget.copy(controls.target);
     
     // Elegir una grada aleatoria (izquierda o derecha)
-    const side = Math.random() > 0.5 ? 'left' : 'right';
     const targetPosition = new THREE.Vector3(
         side === 'left' ? izquerdaCampo - 5 : derechaCampo + 5,
         4,
@@ -520,7 +566,8 @@ function resetCameraTrue() {
     }
 }
 
-setInterval(hacerSaltarEspectadores, 2000)
+setInterval(() => hacerSaltarEspectadores(0, 0.75, 300), 1000);
+setInterval(() => hacerSaltarEspectadoresWhenGoal(0, 3, 100), 250);
 
 let lastTime = 0;
 const fps = 60;
