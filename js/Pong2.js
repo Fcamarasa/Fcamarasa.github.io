@@ -29,9 +29,13 @@ let izquerdaCampo = -anchoCampo / 2;
 let norteCampo = altoCampo / 2;
 let surCampo = -altoCampo / 2;
 
+let numeroGradas = 4;
+let altoGrada = altoCampo;
+let anchoGrada = 3;
+
 let ballSpeed = { x: 0, z: 0 };
 let scoreLeft = 0, scoreRight = 0;
-let scoreDisplay, winnerMessage;
+let scoreDisplay, winnerMessage, firstTo3Message;
 let isPlaying = false;
 let paddleSpeed = 1;
 let keys = {};
@@ -39,6 +43,7 @@ let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
 let espectadores = [];
 let goalCelebration = false;
+let goalscored = false;
 let isCameraTransition = false;
 let originalCameraPosition = new THREE.Vector3();
 let originalCameraTarget = new THREE.Vector3();
@@ -67,11 +72,14 @@ function init()
 
     // Escena
     scene = new THREE.Scene();
-    scene.background = new THREE.Color(0.2, 0.4, 0.6); // Azul cielo para un fondo más agradable
+    const loader = new THREE.TextureLoader();
+        loader.load('./images/pitbull2.jpg', function(texture) {
+    scene.background = texture;
+    });
 
     // Camara
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 100 );
-    camera.position.set( 0, 15, 22 );
+    camera.position.set( 0, 18, 22 );
     camera.lookAt( new THREE.Vector3(0, 0, 0) );
 
     // Luz
@@ -106,23 +114,27 @@ function init()
 }
 
 function loadScene()
-{
-    const materialLinea = new THREE.LineBasicMaterial({ color: 0xffffff });
-    const materialPared = new THREE.MeshBasicMaterial({ color: 0x222222 });
-    const materialSuelo = new THREE.MeshBasicMaterial({ color: 0x005500 });
-
+{   
     // Suelo
-    const suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo, 1, altoCampo), materialSuelo );
-    suelo.position.set(0, -0.5, 0);
+    const materialSuelo = new THREE.MeshStandardMaterial({ 
+        color: 0x8B4513, // SaddleBrown
+        metalness: 0.3,
+        roughness: 0.9
+    });
+    const suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo + (numeroGradas*anchoGrada) + 30, 1, altoCampo + 12.5), materialSuelo );
+    suelo.position.set(0, -0.6, 0);
     //suelo.rotation.x = -Math.PI / 2;
     scene.add(suelo);
-    
+
     // Líneas del campo
+    const materialLinea = new THREE.LineBasicMaterial({ color: 0xffffff });
     const lineas = new THREE.Group();
     const puntos = [
         new THREE.Vector3(izquerdaCampo, 0.01, 0), new THREE.Vector3(derechaCampo, 0.01, 0), // Línea central
         new THREE.Vector3(izquerdaCampo, 0.01, norteCampo), new THREE.Vector3(izquerdaCampo, 0.01, surCampo), // Borde izquierdo
-        new THREE.Vector3(derechaCampo, 0.01, norteCampo), new THREE.Vector3(derechaCampo, 0.01, 10)  // Borde derecho
+        new THREE.Vector3(derechaCampo, 0.01, norteCampo), new THREE.Vector3(derechaCampo, 0.01, surCampo),  // Borde derecho
+        new THREE.Vector3(derechaCampo, 0.01, norteCampo), new THREE.Vector3(izquerdaCampo, 0.01, norteCampo),
+        new THREE.Vector3(izquerdaCampo, 0.01, surCampo), new THREE.Vector3(derechaCampo, 0.01, surCampo)
     ];
     for (let i = 0; i < puntos.length; i += 2) {
         const geometry = new THREE.BufferGeometry().setFromPoints([puntos[i], puntos[i + 1]]);
@@ -131,6 +143,61 @@ function loadScene()
     }
     scene.add(lineas);
 
+    // Campo de juego con césped
+    const materialCesped = new THREE.MeshStandardMaterial({ 
+        color: 0x005500, 
+        roughness: 0.9,
+        metalness: 0.1
+    });
+    const cesped = new THREE.Mesh(
+        new THREE.BoxGeometry(anchoCampo, 0.2, altoCampo),
+        materialCesped
+    );
+    cesped.position.set(0, -0.1, 0);
+    scene.add(cesped);
+    const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
+    const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
+    // Farolas en las esquinas
+    function crearFarola(x, z) {
+        const grupo = new THREE.Group();
+        
+        // Poste
+        const poste = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.1, 0.1, 8),
+            materialMetal
+        );
+        poste.position.set(x, 4, z);
+        
+        // Lámpara
+        const lampara = new THREE.Mesh(
+            new THREE.BoxGeometry(0.5, 0.3, 0.5),
+            new THREE.MeshStandardMaterial({ color: 0xffff00 })
+        );
+        lampara.position.set(x, 8, z);
+        lampara.rotation.y = Math.PI/4;
+        
+        // Base
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.3, 0.3, 0.5),
+            bordilloMaterial
+        );
+        base.position.set(x, 0.25, z);
+        
+        grupo.add(poste);
+        grupo.add(lampara);
+        grupo.add(base);
+        
+        return grupo;
+    }
+    
+        scene.add(crearFarola(izquerdaCampo - 2, norteCampo + 2));
+        scene.add(crearFarola(derechaCampo + 2, norteCampo + 2));
+        scene.add(crearFarola(izquerdaCampo - 2, surCampo - 2));
+        scene.add(crearFarola(derechaCampo + 2, surCampo - 2));
+    
+
+    
+    const materialPared = new THREE.MeshBasicMaterial({ color: 0x222222 });
     // Paredes laterales
     let anchoPared = 0.5;
     let profundidadPared = 2;
@@ -145,12 +212,6 @@ function loadScene()
     scene.add(paredDer);
 
     // Gradas bien orientadas
-    const materialGradas = new THREE.MeshBasicMaterial({ color: 0x444444, wireframe: false });
-
-    let numeroGradas = 4;
-    let altoGrada = altoCampo;
-    let anchoGrada = 3;
-
     const colorGradas1Izq = 0xADD8E6; // Light Blue
     const colorGradas2Izq = 0x4682B4; // Steel Blue
     
@@ -258,12 +319,15 @@ function loadScene()
     paddleRight.position.set(0, 1, norteCampo - 0.25);
     scene.add(paddleRight);
 
-
     // Pelota
-    const materialPelota = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const materialPelota = new THREE.MeshStandardMaterial({ 
+        color: 0xffa500, // Naranja
+    });
     ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), materialPelota);
     ball.position.set(0, 0.5, 0);
     scene.add(ball);
+
+
 }
 
 function createUI() {
@@ -280,6 +344,19 @@ function createUI() {
     scoreDisplay = document.createElement('div');
     scoreDisplay.textContent = '0 - 0';
     uiDiv.appendChild(scoreDisplay);
+
+    const uiDiv2 = document.createElement('div');
+    uiDiv2.style.position = 'absolute';
+    uiDiv2.style.top = '50px';
+    uiDiv2.style.left = '50%';
+    uiDiv2.style.transform = 'translateX(-50%)';
+    uiDiv2.style.fontSize = '24px';
+    uiDiv2.style.color = 'white';
+    container.appendChild(uiDiv2);
+
+    firstTo3Message = document.createElement("div");
+    firstTo3Message.textContent = "¡El primero que llegue a 3 goles gana!";
+    uiDiv2.appendChild(firstTo3Message);
 
     // Botón Play
     const playButton = document.createElement('button');
@@ -310,6 +387,75 @@ function createUI() {
     winnerMessage.style.color = 'white';
     winnerMessage.style.display = 'none';
     container.appendChild(winnerMessage);
+
+    // Contenedor para los sliders (lado izquierdo)
+    const controlsDiv = document.createElement('div');
+    controlsDiv.style.position = 'absolute';
+    controlsDiv.style.top = '100px';
+    controlsDiv.style.left = '20px';
+    controlsDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    controlsDiv.style.padding = '15px';
+    controlsDiv.style.borderRadius = '10px';
+    container.appendChild(controlsDiv);
+
+    // Variables ajustables (asegúrate de declararlas en el ámbito global)
+
+    createSlider(
+        'Ancho Campo',
+        20,
+        100,
+        1,
+        anchoCampo,
+        value => {
+            anchoCampo = value;
+            // Aquí deberías actualizar la geometría del campo si es necesario
+        }
+    );
+
+    createSlider(
+        'Alto Campo',
+        40,
+        200,
+        1,
+        altoCampo,
+        value => {
+            altoCampo = value;
+        }
+    );
+
+    // Función para crear sliders
+    function createSlider(label, min, max, step, value, onChange) {
+        const sliderContainer = document.createElement('div');
+        sliderContainer.style.margin = '10px 0';
+        
+        const labelElement = document.createElement('span');
+        labelElement.textContent = label + ': ';
+        labelElement.style.color = 'white';
+        labelElement.style.marginRight = '10px';
+        
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = min;
+        slider.max = max;
+        slider.step = step;
+        slider.value = value;
+        slider.style.width = '200px';
+        
+        const valueDisplay = document.createElement('span');
+        valueDisplay.textContent = value;
+        valueDisplay.style.color = 'white';
+        valueDisplay.style.marginLeft = '10px';
+        
+        slider.oninput = function() {
+            valueDisplay.textContent = this.value;
+            onChange(parseFloat(this.value));
+        };
+
+        sliderContainer.appendChild(labelElement);
+        sliderContainer.appendChild(slider);
+        sliderContainer.appendChild(valueDisplay);
+        controlsDiv.appendChild(sliderContainer);
+    }
 }
 
 // Función para resetear la cámara
@@ -415,6 +561,7 @@ function updateGame() {
         else if (ball.position.z <= surCampo + 1){
 
             scoreLeft++;
+            goalscored = true;
             checkWin('left');
             
         }
@@ -425,6 +572,7 @@ function updateGame() {
             ballSpeed.z *= -1;
         }else if (ball.position.z >= norteCampo - 1){
             scoreRight++;
+            goalscored = true;
             checkWin('right');
         }
         scoreDisplay.textContent = `${scoreLeft} - ${scoreRight}`;
@@ -443,12 +591,13 @@ function updateGame() {
             paddleLeft.position.x += paddleSpeed/4;
         }
     }
-
-    if (keys["ArrowLeft"] && paddleRight.position.x > izquerdaCampo + 2.5) {
-        paddleRight.position.x -= paddleSpeed;
-    }
-    if (keys["ArrowRight"] && paddleRight.position.x < derechaCampo - 2.5) {
-        paddleRight.position.x += paddleSpeed;
+    if (!goalscored){
+        if (keys["ArrowLeft"] && paddleRight.position.x > izquerdaCampo + 2.5) {
+            paddleRight.position.x -= paddleSpeed;
+        }
+        if (keys["ArrowRight"] && paddleRight.position.x < derechaCampo - 2.5) {
+            paddleRight.position.x += paddleSpeed;
+        }
     }
 
     if (ballSpeed.z > 0){
@@ -488,6 +637,7 @@ function checkWin(side) {
         setTimeout(() => {
             stopGoalSound();
             startGame();
+            goalscored = false;
         }, 4250);
 
     }
@@ -569,6 +719,7 @@ function resetCameraTrue() {
 setInterval(() => hacerSaltarEspectadores(0, 0.75, 300), 1000);
 setInterval(() => hacerSaltarEspectadoresWhenGoal(0, 3, 100), 250);
 
+
 let lastTime = 0;
 const fps = 60;
 const interval = 1000 / fps;
@@ -591,8 +742,9 @@ function render(time) {
 }
 
 
-// #TODO salto, cambio de camara, confeti y musica cuando hay gol
+// #TODO confeti cuando hay gol
 // #TODO algo para cuando ganes + sonido
-// #TODO suelo general para que no este flotando todo + focos y luces
+// #TODO focos y luces
 // #TODO opción noche dia tarde con más o menos espectadores
 // #TODO powerups
+// #TODO cambio de imagen de fondo
