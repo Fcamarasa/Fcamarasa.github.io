@@ -22,7 +22,8 @@ let suelo, cesped, paredIzq, paredDer, porteriaIzq, porteriaDer, lineas;
 let paddleLeft, paddleRight, ball;
 let farolas = [];
 let gradas = [];
-let espectadores = [];
+let espectadoresIzq = [];
+let espectadoresDer = [];
 
 //Variables de valores de la geometría
 let anchoCampo = 15;
@@ -70,12 +71,14 @@ let scoreDisplay, winnerMessage, firstTo3Message, controlesMessage;
 
 // Variables de estado
 let goalSound, goalSound2;
+let winSound, loseSound;
 let ballSpeed = { x: 0, z: 0 };
 let scoreLeft = 0, scoreRight = 0;
 let keys = {};
 let paddleLeftUpdate;
 let paddleLeftUpdateTimer = -1;
 let goalCelebration = false;
+let endScene = false;
 let goalscored = false;
 let isCameraTransition = false;
 let paddleSpeed = 1;
@@ -136,11 +139,17 @@ function init()
 
     // Cargar sonido
     goalSound = new Audio('./sounds/pitbull-fireball.mp3');
-    goalSound.volume = 0.5; // Ajusta el volumen (opcional)
+    goalSound.volume = 0.5;
 
     goalSound2 = new Audio("./sounds/yaketi_sax.mp3");
-    goalSound2.volume = 0.5; // Ajusta el volumen (opcional)
+    goalSound2.volume = 0.5; 
     
+    winSound = new Audio("./sounds/mario_victory_theme.mp3");
+    winSound.volume = 0.5;
+    
+    loseSound = new Audio("./sounds/curb_your_enthusiam.mp3"); 
+    loseSound.volume = 0.5;
+
     // Crear controles para el "giroscopio"
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;  // Suaviza el movimiento
@@ -209,7 +218,7 @@ function loadScene()
     scene.add(paredDer);
 
     // Gradas bien orientadas
-    crearGradas();
+    crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
 
     // Espectadores bien distribuidos
     crearEspectadores();
@@ -240,15 +249,15 @@ function loadScene()
 
 }
 
-function crearGradas() {
+function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
     // Limpiar gradas existentes
     gradas.forEach(g => scene.remove(g));
     gradas = [];
 
-    const colorGradas1Izq = 0xADD8E6;
-    const colorGradas2Izq = 0x4682B4;
-    const colorGradas1Der = 0xFFB6C1;
-    const colorGradas2Der = 0xCD5C5C;
+    const colorGradas1Izq = colorIzq1;
+    const colorGradas2Izq = colorIzq2;
+    const colorGradas1Der = colorDer1;
+    const colorGradas2Der = colorDer2;
 
     let colorGradasIzq = colorGradas1Izq;
     let colorGradasDer = colorGradas1Der;
@@ -325,11 +334,17 @@ function crearGradas() {
 // Función para crear espectadores
 function crearEspectadores() {
     // Limpiar espectadores existentes
-    espectadores.forEach(e => {
+    espectadoresIzq.forEach(e => {
         scene.remove(e.cuerpo);
         scene.remove(e.cabeza);
     });
-    espectadores = [];
+    espectadoresIzq = [];
+
+    espectadoresDer.forEach(e => {
+        scene.remove(e.cuerpo);
+        scene.remove(e.cabeza);
+    });
+    espectadoresDer = [];
 
     let espectadoresPorGradaLocalVar;
 
@@ -365,7 +380,7 @@ function crearEspectadores() {
 
             scene.add(cuerpo);
             scene.add(cabeza);
-            espectadores.push({ cuerpo, cabeza });
+            espectadoresIzq.push({ cuerpo, cabeza });
 
             // Espectadores derecha
             const colorAleatorioDer = Math.random() * 0xffffff;
@@ -393,7 +408,7 @@ function crearEspectadores() {
 
             scene.add(cuerpoDer);
             scene.add(cabezaDer);
-            espectadores.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
+            espectadoresDer.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
         }
     }
 }
@@ -503,7 +518,7 @@ function updateFieldGeometry() {
     farolas.forEach(f => scene.add(f));
 
     // Actualizar gradas
-    crearGradas();
+    crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
 
     // Actualizar espectadores
     crearEspectadores();
@@ -749,8 +764,26 @@ function resetBall() {
 // Función para hacer saltar a los espectadores cuando no hay gol
 function hacerSaltarEspectadores(minAltura, maxAltura, jumpInMs) {
     
-    if (!goalCelebration){
-        espectadores.forEach(({ cuerpo, cabeza }) => {
+    if (!goalCelebration && !endScene){
+        espectadoresIzq.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
+
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, jumpInMs) // Subir en 500ms
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true) // Vuelve a bajar
+                .repeat(1) // Una sola ida y vuelta
+                .start();
+
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, jumpInMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true)
+                .repeat(1)
+                .start();
+        });
+
+        espectadoresDer.forEach(({ cuerpo, cabeza }) => {
             let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
 
             new TWEEN.Tween(cuerpo.position)
@@ -774,7 +807,7 @@ function hacerSaltarEspectadores(minAltura, maxAltura, jumpInMs) {
 function hacerSaltarEspectadoresWhenGoal(minAltura, maxAltura, jumpInMs) {
 
     if (goalCelebration){
-        espectadores.forEach(({ cuerpo, cabeza }) => {
+        espectadoresIzq.forEach(({ cuerpo, cabeza }) => {
             let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
 
             new TWEEN.Tween(cuerpo.position)
@@ -791,8 +824,110 @@ function hacerSaltarEspectadoresWhenGoal(minAltura, maxAltura, jumpInMs) {
                 .repeat(1)
                 .start();
         });
+
+        
+        espectadoresDer.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = Math.random() * (maxAltura-minAltura) + minAltura; // Salto aleatorio entre 1 y 3 unidades
+
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, jumpInMs) // Subir en 500ms
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true) // Vuelve a bajar
+                .repeat(1) // Una sola ida y vuelta
+                .start();
+
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, jumpInMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true)
+                .repeat(1)
+                .start();
+
+        });
+
     }
 }
+
+// Función para hacer desaparecer
+function hacerDesaparecerEspectadores(altura,jumpInMs, side) {
+
+    if (endScene){
+        if (side === 'left'){
+            espectadoresIzq.forEach(({ cuerpo, cabeza }) => {
+                let alturaSalto = altura + Math.random() * 15
+                let randomMs = jumpInMs + Math.random() * 500
+
+                new TWEEN.Tween(cuerpo.position)
+                    .to({ y: cuerpo.position.y + alturaSalto }, randomMs) 
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+
+                new TWEEN.Tween(cabeza.position)
+                    .to({ y: cabeza.position.y + alturaSalto }, randomMs)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .start();
+            });
+            espectadoresDer.forEach(({ cuerpo, cabeza }) => {
+                let alturaSalto = Math.random() * (5 - 1) + 1; // Salto aleatorio entre 1 y 3 unidades
+    
+                new TWEEN.Tween(cuerpo.position)
+                    .to({ y: cuerpo.position.y + alturaSalto }, 300) 
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true) // Vuelve a bajar
+                    .repeat(25) 
+                    .start();
+    
+                new TWEEN.Tween(cabeza.position)
+                    .to({ y: cabeza.position.y + alturaSalto }, 300)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true)
+                    .repeat(25)
+                    .start();
+    
+            });
+
+
+    }
+    else if (side === 'right'){
+        espectadoresDer.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = altura + Math.random() * 15
+            let randomMs = jumpInMs + Math.random() * 500
+
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, randomMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, randomMs)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .start();
+        });  
+        espectadoresIzq.forEach(({ cuerpo, cabeza }) => {
+            let alturaSalto = Math.random() * (5 - 1) + 1; // Salto aleatorio entre 1 y 3 unidades
+
+            new TWEEN.Tween(cuerpo.position)
+                .to({ y: cuerpo.position.y + alturaSalto }, 300) 
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true) // Vuelve a bajar
+                .repeat(25) 
+                .start();
+
+            new TWEEN.Tween(cabeza.position)
+                .to({ y: cabeza.position.y + alturaSalto }, 300)
+                .easing(TWEEN.Easing.Quadratic.Out)
+                .yoyo(true)
+                .repeat(25)
+                .start();
+
+        });
+
+
+    }
+}
+}
+
+
 
 // Función para actualizar el estado del juego
 function updateGame() {
@@ -870,13 +1005,69 @@ function checkWin(side) {
     if (scoreRight === 3) {
         winnerMessage.textContent = 'Has perdido...';
         ball.position.z -= 0.15;
-        gameOver();
+        playEndSound(side);
+        moveCameraToGrandstandsEnd('left',2000);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            endScene = true;
+            winnerMessage.style.display = 'block';
+        }, 800);
+        setTimeout(() => {
+            hacerDesaparecerEspectadores(40,4000,'left');
+        }, 2000);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            crearGradas(0xFFB6C1, 0xCD5C5C, 0xFFB6C1, 0xCD5C5C);
+        }, 4000);
+        setTimeout(() => {
+            resetCamera();
+        }, 5000);
+        setTimeout(() => {
+            moveCameraToGrandstandsEnd('right',1500);
+        }, 6000);
+        setTimeout(() => {
+            resetCamera();
+        }, 8500);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            endScene = false;
+        }, 10500);
+        setTimeout(() => {
+            stopEndSound();
+            gameOver();
+            goalscored = false;
+        }, 11000);
     } else if (scoreLeft === 3) {
         winnerMessage.textContent = '¡Has ganado!';
-        gameOver();
+        playEndSound(side);
+        moveCameraToGrandstandsEnd('right',2000);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            endScene = true;
+            winnerMessage.style.display = 'block';
+        }, 800);
+        setTimeout(() => {
+            hacerDesaparecerEspectadores(40,4000,'right');
+        }, 1500);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            crearGradas(0xADD8E6, 0x4682B4, 0xADD8E6, 0x4682B4);
+        }, 4000);
+        setTimeout(() => {
+            resetCamera();
+        }, 5000);
+        setTimeout(() => {
+            moveCameraToGrandstandsEnd('left',1500);
+        }, 6000);
+        setTimeout(() => {
+            resetCamera();
+        }, 8500);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            endScene = false;
+        }, 10500);
+        setTimeout(() => {
+            stopEndSound();
+            gameOver();
+            goalscored = false;
+        }, 11000);
     } else {
         playGoalSound(side);
-        moveCameraToGrandstands(side);
+        moveCameraToGrandstands(side,700);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             goalCelebration = true;
         }, 800);
@@ -896,7 +1087,7 @@ function checkWin(side) {
 }
 
 // Función para enfocar a la grada que ha marcado gol
-function moveCameraToGrandstands(side) {
+function moveCameraToGrandstands(side,ms) {
     isCameraTransition = true;
     isPlaying = false;
     
@@ -913,7 +1104,7 @@ function moveCameraToGrandstands(side) {
 
     // Animación de posición de cámara
     new TWEEN.Tween(camera.position)
-        .to(targetPosition, 700)
+        .to(targetPosition, ms)
         .easing(TWEEN.Easing.Quadratic.InOut)
         .start();
 
@@ -923,7 +1114,43 @@ function moveCameraToGrandstands(side) {
             x: side === 'left' ? izquerdaCampo - 6 : derechaCampo + 6,
             y: 3,
             z: targetPosition.z
-        }, 700)
+        }, ms)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+
+    // Forzar actualización de controles
+    controls.enabled = false;
+}
+
+
+function moveCameraToGrandstandsEnd(side,ms) {
+    isCameraTransition = true;
+    isPlaying = false;
+    
+    // Guardar posición original
+    originalCameraPosition.copy(camera.position);
+    originalCameraTarget.copy(controls.target);
+    
+    // Elegir una grada aleatoria (izquierda o derecha)
+    const targetPosition = new THREE.Vector3(
+        side === 'left' ? izquerdaCampo + 15 : derechaCampo - 15,
+        15,
+        0.5 * altoCampo - norteCampo
+    );
+
+    // Animación de posición de cámara
+    new TWEEN.Tween(camera.position)
+        .to(targetPosition, ms)
+        .easing(TWEEN.Easing.Quadratic.InOut)
+        .start();
+
+    // Animación del objetivo de la cámara
+    new TWEEN.Tween(controls.target)
+        .to({
+            x: side === 'left' ? izquerdaCampo - 6 : derechaCampo + 6,
+            y: 3,
+            z: targetPosition.z
+        }, ms)
         .easing(TWEEN.Easing.Quadratic.InOut)
         .start();
 
@@ -957,12 +1184,37 @@ function stopGoalSound() {
 
 }
 
+function playEndSound(side) {
+    try {
+        if (side === "left") {
+            winSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
+            winSound.play();
+        }
+        else if (side === "right") {
+            loseSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
+            loseSound.play();
+        }
+
+    } catch (e) {
+        console.error("Error al reproducir sonido:", e);
+    }
+}
+
+function stopEndSound() {
+    try {
+        winSound.pause();
+        loseSound.pause();
+    } catch (e) {
+        console.error("Error al reproducir sonido:", e);
+    }
+
+}
+
 // Función para terminar el juego y resetear el marcador
 function gameOver() {
     isPlaying = false;
     scoreLeft = 0;
     scoreRight = 0;
-    winnerMessage.style.display = 'block';
 }
 
 // Función para resetear la cámara
@@ -1004,8 +1256,8 @@ function render(time) {
 
 
 // #TODO confeti cuando hay gol
-// #TODO algo para cuando ganes + sonido
+// #TODO powerups
+
+// #TODO amagar UI quan tal i cual
 // #TODO focos y luces
 // #TODO Textures
-// #TODO powerups
-// #TODO amagar UI quan tal i cual
