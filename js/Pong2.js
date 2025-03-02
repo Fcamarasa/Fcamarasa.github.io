@@ -15,15 +15,16 @@ import {OrbitControls} from "../lib/OrbitControls.module.js";
 // Variables de protocolo
 let renderer, scene, camera;
 let controls;
+const loader = new THREE.TextureLoader();
 
 // Variables de partes de la geometría
 let suelo, cesped, paredIzq, paredDer, porteriaIzq, porteriaDer, lineas;
 let paddleLeft, paddleRight, ball;
 let farolas = [];
 let gradas = [];
-let espectadoresArray = [];
+let espectadores = [];
 
-//Varuables de valores de la geometría
+//Variables de valores de la geometría
 let anchoCampo = 15;
 let altoCampo = 25;
 
@@ -39,6 +40,8 @@ let derechaCampo = anchoCampo / 2;
 let izquerdaCampo = -anchoCampo / 2;
 let norteCampo = altoCampo / 2;
 let surCampo = -altoCampo / 2;
+
+let fondo = 0;
 
 // Materiales
 const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
@@ -66,7 +69,7 @@ const materialPelota = new THREE.MeshStandardMaterial({
 let scoreDisplay, winnerMessage, firstTo3Message;
 
 // Variables de estado
-let goalSound;
+let goalSound, goalSound2;
 let ballSpeed = { x: 0, z: 0 };
 let scoreLeft = 0, scoreRight = 0;
 let keys = {};
@@ -77,7 +80,7 @@ let goalscored = false;
 let isCameraTransition = false;
 let paddleSpeed = 1;
 let isPlaying = false;
-let espectadores = [];
+
 
 
 // Variables de cámara
@@ -108,14 +111,11 @@ function init()
 
     // Escena
     scene = new THREE.Scene();
-    const loader = new THREE.TextureLoader();
-        loader.load('./images/pitbull2.jpg', function(texture) {
-    scene.background = texture;
-    });
+    actualizarFondo(fondo)
 
     // Camara
     camera = new THREE.PerspectiveCamera( 75, window.innerWidth/window.innerHeight, 0.1, 100 );
-    camera.position.set( 0, 18, 22 );
+    camera.position.set(0, 20, 25 );
     camera.lookAt( new THREE.Vector3(0, 0, 0) );
 
     // Luz
@@ -137,6 +137,9 @@ function init()
     // Cargar sonido
     goalSound = new Audio('./sounds/pitbull-fireball.mp3');
     goalSound.volume = 0.5; // Ajusta el volumen (opcional)
+
+    goalSound2 = new Audio("./sounds/yaketi_sax.mp3");
+    goalSound2.volume = 0.5; // Ajusta el volumen (opcional)
     
     // Crear controles para el "giroscopio"
     controls = new OrbitControls(camera, renderer.domElement);
@@ -147,6 +150,13 @@ function init()
     controls.maxDistance = 50;
     controls.maxPolarAngle = Math.PI / 2;  // No permite girar la cámara debajo del suelo
     
+}
+
+function actualizarFondo(num) {
+    let url = './images/fondo' + num + '.jpg';
+    loader.load(url, function(texture) {
+        scene.background = texture;
+    });
 }
 
 function loadScene()
@@ -199,85 +209,10 @@ function loadScene()
     scene.add(paredDer);
 
     // Gradas bien orientadas
-    const colorGradas1Izq = 0xADD8E6; // Light Blue
-    const colorGradas2Izq = 0x4682B4; // Steel Blue
-    const colorGradas1Der = 0xFFB6C1; // Gris medio
-    const colorGradas2Der = 0xCD5C5C; // Gris oscuro
-
-    let colorGradasIzq = colorGradas1Izq;
-    let colorGradasDer = colorGradas1Der;
-
-    for (let i = 0; i < numeroGradas; i++) {
-
-        if (i % 2 === 0) {
-            colorGradasIzq = colorGradas1Izq;
-            colorGradasDer = colorGradas1Der;
-        }
-        else {
-             colorGradasDer = colorGradas2Der
-             colorGradasIzq = colorGradas2Izq;
-        }
-
-        if (i != numeroGradas - 1) {
-
-        const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq, wireframe: false });
-        const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradasIzq);
-        gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) , i, -0.5);
-        gradaIzq.rotation.y = Math.PI / 2;
-        scene.add(gradaIzq);
-        
-        const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer, wireframe: false });
-        const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 1, anchoGrada), materialGradasDer);
-        gradaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (i * anchoGrada) , i, -0.5);
-        gradaDer.rotation.y = -Math.PI / 2;
-        scene.add(gradaDer);
-        
-        }
-        else {
-            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq, wireframe: false });
-            const gradaIzq = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradasIzq);
-            gradaIzq.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (i * anchoGrada) + anchoGrada/3 , i, -0.5);
-            gradaIzq.rotation.y = Math.PI / 2;
-            scene.add(gradaIzq);
-
-            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer, wireframe: false });
-            const gradaDer = new THREE.Mesh(new THREE.BoxGeometry(altoGrada, 3, anchoGrada/3), materialGradasDer);
-            gradaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (i * anchoGrada) - anchoGrada/3 , i, -0.5);
-            gradaDer.rotation.y = -Math.PI / 2;
-            scene.add(gradaDer);
-        }
-
-    }
+    crearGradas();
 
     // Espectadores bien distribuidos
-
-    for (let fila = 0; fila < numeroGradas - 1; fila++) {
-        for (let i = -(espectadoresPorGrada / 2); i <= espectadoresPorGrada / 2; i++) {
-
-            const colorAleatorio = Math.random() * 0xffffff;
-            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorio });
-            let cuerpo = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectador);
-            let cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectador);
-            cabeza.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 1.2, i * 1.5);
-            cuerpo.position.set(izquerdaCampo-(anchoGrada/2)-0.75 - (fila * anchoGrada), fila + 0.5, i * 1.5);
-            scene.add(cuerpo);           
-            scene.add(cabeza);
-
-            espectadores.push({ cuerpo, cabeza });
-
-            const colorAleatorioDer = Math.random() * 0xffffff;
-            const materialEspectadorDer = new THREE.MeshBasicMaterial({ color: colorAleatorioDer });
-
-            let cuerpoDer = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.2, 1, 8), materialEspectadorDer);
-            let cabezaDer = new THREE.Mesh(new THREE.SphereGeometry(0.3, 8, 8), materialEspectadorDer);
-            cabezaDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (fila * anchoGrada), fila + 1.2, i * 1.5);
-            cuerpoDer.position.set(derechaCampo+(anchoGrada/2)+0.75 + (fila * anchoGrada), fila + 0.5, i * 1.5);
-            scene.add(cabezaDer);
-            scene.add(cuerpoDer);
-            espectadores.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
-        }
-    }
-
+    crearEspectadores();
 
     // Porterías con redes
     porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
@@ -304,6 +239,165 @@ function loadScene()
 
 
 }
+
+function crearGradas() {
+    // Limpiar gradas existentes
+    gradas.forEach(g => scene.remove(g));
+    gradas = [];
+
+    const colorGradas1Izq = 0xADD8E6;
+    const colorGradas2Izq = 0x4682B4;
+    const colorGradas1Der = 0xFFB6C1;
+    const colorGradas2Der = 0xCD5C5C;
+
+    let colorGradasIzq = colorGradas1Izq;
+    let colorGradasDer = colorGradas1Der;
+
+    for (let i = 0; i < numeroGradas; i++) {
+        if (i % 2 === 0) {
+            colorGradasIzq = colorGradas1Izq;
+            colorGradasDer = colorGradas1Der;
+        } else {
+            colorGradasDer = colorGradas2Der;
+            colorGradasIzq = colorGradas2Izq;
+        }
+
+        let gradaIzq, gradaDer;
+
+        if (i != numeroGradas - 1) {
+            altoGrada = altoCampo;
+            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq });
+            gradaIzq = new THREE.Mesh(
+                new THREE.BoxGeometry(altoGrada, 1, anchoGrada), 
+                materialGradasIzq
+            );
+            gradaIzq.position.set(
+                izquerdaCampo - (anchoGrada / 2) - 0.75 - (i * anchoGrada), 
+                i, 
+                -0.5
+            );
+            gradaIzq.rotation.y = Math.PI / 2;
+
+            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer });
+            gradaDer = new THREE.Mesh(
+                new THREE.BoxGeometry(altoGrada, 1, anchoGrada), 
+                materialGradasDer
+            );
+            gradaDer.position.set(
+                derechaCampo + (anchoGrada / 2) + 0.75 + (i * anchoGrada), 
+                i, 
+                -0.5
+            );
+            gradaDer.rotation.y = -Math.PI / 2;
+        } else {
+            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq });
+            gradaIzq = new THREE.Mesh(
+                new THREE.BoxGeometry(altoGrada, 3, anchoGrada / 3), 
+                materialGradasIzq
+            );
+            gradaIzq.position.set(
+                izquerdaCampo - (anchoGrada / 2) - 0.75 - (i * anchoGrada) + anchoGrada / 3, 
+                i, 
+                -0.5
+            );
+            gradaIzq.rotation.y = Math.PI / 2;
+
+            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer });
+            gradaDer = new THREE.Mesh(
+                new THREE.BoxGeometry(altoGrada, 3, anchoGrada / 3), 
+                materialGradasDer
+            );
+            gradaDer.position.set(
+                derechaCampo + (anchoGrada / 2) + 0.75 + (i * anchoGrada) - anchoGrada / 3, 
+                i, 
+                -0.5
+            );
+            gradaDer.rotation.y = -Math.PI / 2;
+        }
+
+        gradas.push(gradaIzq);
+        gradas.push(gradaDer);
+        scene.add(gradaIzq);
+        scene.add(gradaDer);
+    }
+}
+
+// Función para crear espectadores
+function crearEspectadores() {
+    // Limpiar espectadores existentes
+    espectadores.forEach(e => {
+        scene.remove(e.cuerpo);
+        scene.remove(e.cabeza);
+    });
+    espectadores = [];
+
+    let espectadoresPorGradaLocalVar;
+
+    if (espectadoresPorGrada > 0.55 * altoCampo){
+        espectadoresPorGradaLocalVar = Math.floor(0.55 * altoCampo);
+    }else { espectadoresPorGradaLocalVar = espectadoresPorGrada; }
+    
+    for (let fila = 0; fila < numeroGradas - 1; fila++) {
+        for (let i = -(espectadoresPorGradaLocalVar / 2); i <= espectadoresPorGradaLocalVar / 2; i++) {
+            // Espectadores izquierda
+            const colorAleatorio = Math.random() * 0xffffff;
+            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorio });
+            
+            let cuerpo = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
+                materialEspectador
+            );
+            let cabeza = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 8, 8), 
+                materialEspectador
+            );
+            
+            cuerpo.position.set(
+                izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
+                fila + 0.5, 
+                i * 1.5
+            );
+            cabeza.position.set(
+                izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
+                fila + 1.2, 
+                i * 1.5
+            );
+
+            scene.add(cuerpo);
+            scene.add(cabeza);
+            espectadores.push({ cuerpo, cabeza });
+
+            // Espectadores derecha
+            const colorAleatorioDer = Math.random() * 0xffffff;
+            const materialEspectadorDer = new THREE.MeshBasicMaterial({ color: colorAleatorioDer });
+
+            let cuerpoDer = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
+                materialEspectadorDer
+            );
+            let cabezaDer = new THREE.Mesh(
+                new THREE.SphereGeometry(0.3, 8, 8), 
+                materialEspectadorDer
+            );
+            
+            cuerpoDer.position.set(
+                derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
+                fila + 0.5, 
+                i * 1.5
+            );
+            cabezaDer.position.set(
+                derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
+                fila + 1.2, 
+                i * 1.5
+            );
+
+            scene.add(cuerpoDer);
+            scene.add(cabezaDer);
+            espectadores.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
+        }
+    }
+}
+
 
 // Farolas en las esquinas
 function crearFarola(x, z) {
@@ -407,6 +501,12 @@ function updateFieldGeometry() {
         crearFarola(derechaCampo + 2, surCampo - 2)
     ];
     farolas.forEach(f => scene.add(f));
+
+    // Actualizar gradas
+    crearGradas();
+
+    // Actualizar espectadores
+    crearEspectadores();
 }
 
 function createUI() {
@@ -510,6 +610,43 @@ function createUI() {
             updateFieldGeometry();
         }
     );
+
+    createSlider(
+        'Número de gradas',
+        2,
+        7,
+        1,
+        numeroGradas,
+        value => {
+            numeroGradas = value;
+            updateFieldGeometry();
+        }
+    );
+
+    createSlider(
+        'Número de Espectadores',
+        2,
+        25,
+        1,
+        espectadoresPorGrada,
+        value => {
+            espectadoresPorGrada = value - 1;
+            updateFieldGeometry();
+        }
+    );
+
+    createSlider(
+        'Fondo de la escena',
+        0,
+        4,
+        1,
+        fondo,
+        value => {
+            fondo = value;
+            actualizarFondo(fondo);
+        }
+    );
+
 
     // Función para crear sliders
     function createSlider(label, min, max, step, value, onChange) {
@@ -717,17 +854,17 @@ function checkWin(side) {
         winnerMessage.textContent = '¡Has ganado!';
         gameOver();
     } else {
-        playGoalSound();
+        playGoalSound(side);
         moveCameraToGrandstands(side);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             goalCelebration = true;
-        }, 1000);
+        }, 800);
         setTimeout(() => {
             resetCamera();
-        }, 3000);
+        }, 3500);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             goalCelebration = false;
-        }, 3500);
+        }, 4000);
         setTimeout(() => {
             stopGoalSound();
             startGame();
@@ -755,7 +892,7 @@ function moveCameraToGrandstands(side) {
 
     // Animación de posición de cámara
     new TWEEN.Tween(camera.position)
-        .to(targetPosition, 1000)
+        .to(targetPosition, 700)
         .easing(TWEEN.Easing.Quadratic.InOut)
         .start();
 
@@ -765,7 +902,7 @@ function moveCameraToGrandstands(side) {
             x: side === 'left' ? izquerdaCampo - 6 : derechaCampo + 6,
             y: 3,
             z: targetPosition.z
-        }, 1000)
+        }, 700)
         .easing(TWEEN.Easing.Quadratic.InOut)
         .start();
 
@@ -774,10 +911,17 @@ function moveCameraToGrandstands(side) {
 }
 
 // Función para reproducir el sonido de gol
-function playGoalSound() {
+function playGoalSound(side) {
     try {
-        goalSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
-        goalSound.play();
+        if (side === "left") {
+            goalSound.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
+            goalSound.play();
+        }
+        else if (side === "right") {
+            goalSound2.currentTime = 0; // Reiniciar el sonido si ya estaba reproduciéndose
+            goalSound2.play();
+        }
+
     } catch (e) {
         console.error("Error al reproducir sonido:", e);
     }
@@ -785,6 +929,7 @@ function playGoalSound() {
 function stopGoalSound() {
     try {
         goalSound.pause();
+        goalSound2.pause();
     } catch (e) {
         console.error("Error al reproducir sonido:", e);
     }
@@ -840,6 +985,4 @@ function render(time) {
 // #TODO confeti cuando hay gol
 // #TODO algo para cuando ganes + sonido
 // #TODO focos y luces
-// #TODO opción noche dia tarde con más o menos espectadores
 // #TODO powerups
-// #TODO cambio de imagen de fondo
