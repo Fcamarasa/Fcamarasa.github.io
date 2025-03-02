@@ -1044,8 +1044,10 @@ function checkWin(side) {
         }, 4000);
         setTimeout(() => {
             resetCamera();
-            createConfetti(new THREE.Vector3(derechaCampo + 10, 15, 0), 'right');
         }, 5000);
+        setTimeout(() => {
+            createConfetti(new THREE.Vector3(derechaCampo + 10, 15, 0), 'right');
+        }, 5500);
         setTimeout(() => {
             moveCameraToGrandstandsEnd('right',1500);
         }, 6000);
@@ -1076,8 +1078,10 @@ function checkWin(side) {
         }, 4000);
         setTimeout(() => {
             resetCamera();
-            createConfetti(new THREE.Vector3(izquerdaCampo - 10, 15, 0), 'left');
         }, 5000);
+        setTimeout(() => {
+            createConfetti(new THREE.Vector3(izquerdaCampo - 10, 15, 0), 'left');
+        }, 5500);
         setTimeout(() => {
             moveCameraToGrandstandsEnd('left',1500);
         }, 6000);
@@ -1326,9 +1330,9 @@ function render(time) {
 }
 
 
-// #TODO confeti cuando hay gol
 // #TODO powerups
-
 // #TODO amagar UI quan tal i cual
+// #TODO Botó de play again si això
+
 // #TODO focos y luces
 // #TODO Textures
