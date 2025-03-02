@@ -552,7 +552,19 @@ function updateFieldGeometry() {
 function createUI() {
     const container = document.getElementById('container');
 
-    // Marcador
+    // Estilos base para los elementos comunes
+    const baseButtonStyle = {
+        padding: '8px 20px',
+        border: 'none',
+        borderRadius: '5px',
+        color: 'white',
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        fontSize: '14px',
+        fontWeight: 'bold'
+    };
+
+    // Marcador mejorado
     const uiDiv = document.createElement('div');
     uiDiv.style.position = 'absolute';
     uiDiv.style.top = '20px';
@@ -560,177 +572,115 @@ function createUI() {
     uiDiv.style.transform = 'translateX(-50%)';
     uiDiv.style.fontSize = '40px';
     uiDiv.style.color = 'white';
+    uiDiv.style.textShadow = '2px 2px 4px rgba(0,0,0,0.5)';
     container.appendChild(uiDiv);
 
     scoreDisplay = document.createElement('div');
     scoreDisplay.textContent = '0 - 0';
+    scoreDisplay.style.fontFamily = 'Arial, sans-serif';
     uiDiv.appendChild(scoreDisplay);
 
-    // Mensaje de primero a tres
-    const uiDiv2 = document.createElement('div');
-    uiDiv2.style.position = 'absolute';
-    uiDiv2.style.top = '60px';
-    uiDiv2.style.left = '50%';
-    uiDiv2.style.transform = 'translateX(-50%)';
-    uiDiv2.style.fontSize = '15px';
-    uiDiv2.style.color = 'white';
-    container.appendChild(uiDiv2);
+    // Mensajes informativos
+    const messageContainer = document.createElement('div');
+    messageContainer.style.position = 'absolute';
+    messageContainer.style.top = '70px';
+    messageContainer.style.left = '50%';
+    messageContainer.style.transform = 'translateX(-50%)';
+    messageContainer.style.textAlign = 'center';
+    container.appendChild(messageContainer);
 
     firstTo3Message = document.createElement("div");
     firstTo3Message.textContent = "¡El primero que llegue a 3 goles gana!";
-    uiDiv2.appendChild(firstTo3Message);
-
-    // Mensaje de primero a tres
-    const uiDiv3 = document.createElement('div');
-    uiDiv3.style.position = 'absolute';
-    uiDiv3.style.top = '90px';
-    uiDiv3.style.left = '50%';
-    uiDiv3.style.transform = 'translateX(-50%)';
-    uiDiv3.style.fontSize = '15px';
-    uiDiv3.style.color = 'white';
-    container.appendChild(uiDiv3);
+    firstTo3Message.style.color = '#ffd700';
+    firstTo3Message.style.fontSize = '16px';
+    firstTo3Message.style.textShadow = '1px 1px 2px rgba(0,0,0,0.5)';
+    firstTo3Message.style.marginBottom = '8px';
+    messageContainer.appendChild(firstTo3Message);
 
     controlesMessage = document.createElement("div");
-    controlesMessage.textContent = "Use las flechas ⬅️ y ➡️ para mover tu pala";
-    uiDiv3.appendChild(controlesMessage);
+    controlesMessage.textContent = "Controles: Usa las flechas ← → para mover tu pala";
+    controlesMessage.style.color = '#ccc';
+    controlesMessage.style.fontSize = '14px';
+    messageContainer.appendChild(controlesMessage);
 
-    // Botón Play
+    // Botones mejorados
+    const buttonContainer = document.createElement('div');
+    buttonContainer.style.position = 'absolute';
+    buttonContainer.style.top = '20px';
+    buttonContainer.style.left = '20px';
+    buttonContainer.style.display = 'flex';
+    buttonContainer.style.gap = '10px';
+    container.appendChild(buttonContainer);
+
     const playButton = document.createElement('button');
-    playButton.textContent = 'Play';
-    playButton.style.display = 'block';
+    playButton.textContent = 'Jugar';
+    Object.assign(playButton.style, baseButtonStyle, {
+        backgroundColor: '#4CAF50',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    });
+    playButton.onmouseover = () => playButton.style.backgroundColor = '#45a049';
+    playButton.onmouseout = () => playButton.style.backgroundColor = '#4CAF50';
     playButton.onclick = startGameTrue;
-    playButton.style.position = "absolute";
-    playButton.style.top = "10px";
-    playButton.style.left = "50px";
-    container.appendChild(playButton);
+    buttonContainer.appendChild(playButton);
 
-    // Botón Reset Camera
     const resetCameraButton = document.createElement('button');
-    resetCameraButton.textContent = 'Reset Camera';
-    resetCameraButton.style.display = 'block';
+    resetCameraButton.textContent = 'Reiniciar Cámara';
+    Object.assign(resetCameraButton.style, baseButtonStyle, {
+        backgroundColor: '#2196F3',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+    });
+    resetCameraButton.onmouseover = () => resetCameraButton.style.backgroundColor = '#1976D2';
+    resetCameraButton.onmouseout = () => resetCameraButton.style.backgroundColor = '#2196F3';
     resetCameraButton.onclick = resetCameraTrue;
-    resetCameraButton.style.position = "absolute";
-    resetCameraButton.style.top = "10px";
-    resetCameraButton.style.left = "150px";  // Posición a la derecha del botón Play
-    container.appendChild(resetCameraButton);
+    buttonContainer.appendChild(resetCameraButton);
 
-    // Mensaje de ganador
-    winnerMessage = document.createElement('div');
-    winnerMessage.style.position = 'absolute';
-    winnerMessage.style.top = '150px';
-    winnerMessage.style.left = '50%';
-    winnerMessage.style.transform = 'translate(-50%, -50%)';
-    winnerMessage.style.fontSize = '48px';
-    winnerMessage.style.color = 'white';
-    winnerMessage.style.display = 'none';
-    container.appendChild(winnerMessage);
-
-    // Contenedor para los sliders (lado izquierdo)
+    // Panel de controles mejorado
     const controlsDiv = document.createElement('div');
     controlsDiv.style.position = 'absolute';
-    controlsDiv.style.top = '50px';
+    controlsDiv.style.top = '70px';
     controlsDiv.style.left = '20px';
-    controlsDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
-    controlsDiv.style.padding = '15px';
+    controlsDiv.style.backgroundColor = 'rgba(0,0,0,0.8)';
+    controlsDiv.style.padding = '15px 20px';
     controlsDiv.style.borderRadius = '10px';
-    controlsDiv.style.marginBottom = "0px";
-    controlsDiv.style.marginTop = "10px";
+    controlsDiv.style.backdropFilter = 'blur(5px)';
+    controlsDiv.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
     container.appendChild(controlsDiv);
 
-    // Variables ajustables
-
-    createSlider(
-        'Anchura del campo',
-        10,
-        30,
-        1,
-        anchoCampo,
-        value => {
-            anchoCampo = value;
-            derechaCampo = anchoCampo / 2;
-            izquerdaCampo = -anchoCampo / 2;
-            updateFieldGeometry();
-        }
-    );
-
-    createSlider(
-        'Altura del campo',
-        15,
-        35,
-        1,
-        altoCampo,
-        value => {
-            altoCampo = value;
-            norteCampo = altoCampo / 2;
-            surCampo = -altoCampo / 2;
-            updateFieldGeometry();
-        }
-    );
-
-    createSlider(
-        'Número de gradas',
-        2,
-        7,
-        1,
-        numeroGradas,
-        value => {
-            numeroGradas = value;
-            updateFieldGeometry();
-        }
-    );
-
-    createSlider(
-        'Espectadores',
-        2,
-        25,
-        1,
-        espectadoresPorGrada,
-        value => {
-            espectadoresPorGrada = value - 1;
-            updateFieldGeometry();
-        }
-    );
-
-    createSlider(
-        'Fondo de la escena',
-        0,
-        4,
-        1,
-        fondo,
-        value => {
-            fondo = value;
-            actualizarFondo(fondo);
-        }
-    );
-
-
-    // Función para crear sliders
+    // Función para crear sliders estilizados
     function createSlider(label, min, max, step, value, onChange) {
         const sliderContainer = document.createElement('div');
-        sliderContainer.style.margin = '0px 0px';
-        
-        const labelElement = document.createElement('span');
-        labelElement.textContent = label + ': ';
-        labelElement.style.alignItems = 'center';
-        labelElement.style.color = 'white';
-        labelElement.style.width = "150px";
-        labelElement.style.height = "35px";
-        labelElement.style.display = 'inline-block';
+        sliderContainer.style.margin = '12px 0';
+        sliderContainer.style.display = 'flex';
+        sliderContainer.style.alignItems = 'center';
+        sliderContainer.style.gap = '10px';
 
-        
+        const labelElement = document.createElement('span');
+        labelElement.textContent = label;
+        labelElement.style.color = '#fff';
+        labelElement.style.width = '140px';
+        labelElement.style.fontSize = '14px';
+
         const slider = document.createElement('input');
         slider.type = 'range';
         slider.min = min;
         slider.max = max;
         slider.step = step;
         slider.value = value;
-        slider.style.width = '150px';
-        slider.style.height = "5px";
-        
+        slider.style.width = '180px';
+        slider.style.height = '6px';
+        slider.style.borderRadius = '3px';
+        slider.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        slider.style.outline = 'none';
+        slider.style.cursor = 'pointer';
+
         const valueDisplay = document.createElement('span');
         valueDisplay.textContent = value;
-        valueDisplay.style.color = 'white';
-        valueDisplay.style.marginLeft = '10px';
+        valueDisplay.style.color = '#fff';
+        valueDisplay.style.minWidth = '30px';
+        valueDisplay.style.textAlign = 'center';
+        valueDisplay.style.backgroundColor = 'rgba(255,255,255,0.1)';
+        valueDisplay.style.padding = '4px 8px';
+        valueDisplay.style.borderRadius = '4px';
         
         slider.oninput = function() {
             valueDisplay.textContent = this.value;
@@ -742,6 +692,51 @@ function createUI() {
         sliderContainer.appendChild(valueDisplay);
         controlsDiv.appendChild(sliderContainer);
     }
+
+    // Crear sliders
+    createSlider('Ancho del campo', 10, 30, 1, anchoCampo, value => {
+        anchoCampo = value;
+        derechaCampo = anchoCampo / 2;
+        izquerdaCampo = -anchoCampo / 2;
+        updateFieldGeometry();
+    });
+
+    createSlider('Alto del campo', 15, 35, 1, altoCampo, value => {
+        altoCampo = value;
+        norteCampo = altoCampo / 2;
+        surCampo = -altoCampo / 2;
+        updateFieldGeometry();
+    });
+
+    createSlider('Número de gradas', 2, 7, 1, numeroGradas, value => {
+        numeroGradas = value;
+        updateFieldGeometry();
+    });
+
+    createSlider('Espectadores', 2, 25, 1, espectadoresPorGrada, value => {
+        espectadoresPorGrada = value - 1;
+        updateFieldGeometry();
+    });
+
+    createSlider('Fondo de escena', 0, 4, 1, fondo, value => {
+        fondo = value;
+        actualizarFondo(fondo);
+    });
+
+    // Mensaje de ganador mejorado
+    winnerMessage = document.createElement('div');
+    winnerMessage.style.position = 'absolute';
+    winnerMessage.style.top = '50%';
+    winnerMessage.style.left = '50%';
+    winnerMessage.style.transform = 'translate(-50%, -50%)';
+    winnerMessage.style.fontSize = '48px';
+    winnerMessage.style.color = 'white';
+    winnerMessage.style.textShadow = '2px 2px 6px rgba(0,0,0,0.8)';
+    winnerMessage.style.padding = '20px 40px';
+    winnerMessage.style.borderRadius = '10px';
+    winnerMessage.style.backgroundColor = 'rgba(0,0,0,0.7)';
+    winnerMessage.style.display = 'none';
+    container.appendChild(winnerMessage);
 }
 
 // Función para resetear la cámara
