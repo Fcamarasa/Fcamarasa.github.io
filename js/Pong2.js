@@ -378,12 +378,22 @@ function crearEspectadores() {
     if (espectadoresPorGrada > 0.55 * altoCampo){
         espectadoresPorGradaLocalVar = Math.floor(0.55 * altoCampo);
     }else { espectadoresPorGradaLocalVar = espectadoresPorGrada; }
-    
+
+    function getRandomColor(min, max) {
+        return Math.floor(Math.random() * (max - min + 1) + min);
+    }
+
     for (let fila = 0; fila < numeroGradas - 1; fila++) {
         for (let i = -(espectadoresPorGradaLocalVar / 2); i <= espectadoresPorGradaLocalVar / 2; i++) {
             // Espectadores izquierda
-            const colorAleatorio = Math.random() * 0xffffff;
-            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorio });
+            
+
+
+            const rIzq = getRandomColor(0, 128);
+            const gIzq = getRandomColor(0, 255);
+            const bIzq = getRandomColor(128, 255);
+            const colorAleatorioIzq = new THREE.Color(`rgb(${rIzq}, ${gIzq}, ${bIzq})`);
+            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorioIzq });
             
             let cuerpo = new THREE.Mesh(
                 new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
@@ -410,7 +420,12 @@ function crearEspectadores() {
             espectadoresIzq.push({ cuerpo, cabeza });
 
             // Espectadores derecha
-            const colorAleatorioDer = Math.random() * 0xffffff;
+            
+    
+            const rDer = getRandomColor(128, 255); // Mayor énfasis en los tonos rojos
+            const gDer = getRandomColor(0, 255);
+            const bDer = getRandomColor(0, 128);
+            const colorAleatorioDer = new THREE.Color(`rgb(${rDer}, ${gDer}, ${bDer})`);
             const materialEspectadorDer = new THREE.MeshBasicMaterial({ color: colorAleatorioDer });
 
             let cuerpoDer = new THREE.Mesh(
@@ -531,8 +546,15 @@ function updateFieldGeometry() {
     scene.add(lineas);
 
     // Actualizar palas
+    scene.remove(paddleLeft);
+    paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
     paddleLeft.position.set(0, 1, surCampo + 0.25);
+    scene.add(paddleLeft);
+
+    scene.remove(paddleRight);
+    paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
+    scene.add(paddleRight);
 
     // Actualizar farolas
     farolas.forEach(f => scene.remove(f));
@@ -551,6 +573,35 @@ function updateFieldGeometry() {
     crearEspectadores();
 }
 
+function palasUpdate(side){
+
+    if (side === 'left'){
+
+        scene.remove(paddleLeft);
+        paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
+        paddleLeft.position.set(0, 1, surCampo + 0.25);
+        scene.add(paddleLeft);
+
+    }
+    else if (side === 'right'){
+        scene.remove(paddleRight);
+        paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
+        paddleRight.position.set(0, 1, norteCampo - 0.25);
+        scene.add(paddleRight);
+
+    }
+    else {
+        scene.remove(paddleLeft);
+        paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
+        paddleLeft.position.set(0, 1, surCampo + 0.25);
+        scene.add(paddleLeft);
+    
+        scene.remove(paddleRight);
+        paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
+        paddleRight.position.set(0, 1, norteCampo - 0.25);
+        scene.add(paddleRight);
+    }
+}
 function createUI() {
     const container = document.getElementById('container');
 
@@ -640,6 +691,7 @@ function createUI() {
             gameOver();
             crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
             crearEspectadores();
+            palasUpdate('ALL');
             isGameRunning = false;
             playButton.textContent = 'Jugar';
             winnerMessage.style.display = 'none';
@@ -1064,6 +1116,8 @@ function checkWin(side) {
         }, 2000);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             crearGradas(0xFFB6C1, 0xCD5C5C, 0xFFB6C1, 0xCD5C5C);
+            palasUpdate('right');
+            resetBall();
         }, 4000);
         setTimeout(() => {
             resetCamera();
@@ -1098,6 +1152,8 @@ function checkWin(side) {
         }, 1500);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             crearGradas(0xADD8E6, 0x4682B4, 0xADD8E6, 0x4682B4);
+            palasUpdate('left');
+            resetBall();
         }, 4000);
         setTimeout(() => {
             resetCamera();
@@ -1357,11 +1413,12 @@ function render(time) {
 
 
 // #TODO powerups
-// #TODO amagar UI quan tal i cual
-// #TODO Botó de play again si això
 
 // #TODO focos y luces
 // #TODO Textures
+
+// #TODO que els espectadors siguen de color blau o roig tonos
+// #TODO que la pala també la palme
 
 // #TODO revisar valors incial camps
 // #TODO revisar temps animació victoria
