@@ -216,7 +216,6 @@ function loadScene()
     // Suelo
     suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo + (numeroGradas*anchoGrada) + 30, 1, altoCampo + 12.5), materialSuelo );
     suelo.position.set(0, -0.6, 0);
-    suelo.castShadow = true;
     suelo.receiveShadow = true;
 
     scene.add(suelo);
@@ -243,7 +242,6 @@ function loadScene()
         materialCesped
     );
     cesped.position.set(0, -0.1, 0);
-    cesped.castShadow = true;
     cesped.receiveShadow = true;
     scene.add(cesped);
 
@@ -273,7 +271,7 @@ function loadScene()
     crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
 
     // Espectadores bien distribuidos
-    crearEspectadores();
+    crearEspectadores('ALL');
 
     // Porterías con redes
     porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
@@ -294,7 +292,7 @@ function loadScene()
 
     paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
-    paddleRight.castShadow = true;
+    paddleRight.castShadow = true; 
     scene.add(paddleRight);
 
     // Pelota
@@ -332,7 +330,11 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
 
         if (i != numeroGradas - 1) {
             altoGrada = altoCampo;
-            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq });
+            const materialGradasIzq = new THREE.MeshStandardMaterial({ 
+                color: colorGradasIzq,
+                roughness: 0.7,
+                metalness: 0.1
+            });
             gradaIzq = new THREE.Mesh(
                 new THREE.BoxGeometry(altoGrada, 1, anchoGrada), 
                 materialGradasIzq
@@ -344,7 +346,11 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
             );
             gradaIzq.rotation.y = Math.PI / 2;
 
-            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer });
+            const materialGradasDer = new THREE.MeshStandardMaterial({ 
+                color: colorGradasDer,
+                roughness: 0.7,
+                metalness: 0.1
+            });
             gradaDer = new THREE.Mesh(
                 new THREE.BoxGeometry(altoGrada, 1, anchoGrada), 
                 materialGradasDer
@@ -356,7 +362,11 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
             );
             gradaDer.rotation.y = -Math.PI / 2;
         } else {
-            const materialGradasIzq = new THREE.MeshBasicMaterial({ color: colorGradasIzq });
+            const materialGradasIzq = new THREE.MeshStandardMaterial({ 
+                color: colorGradasIzq,
+                roughness: 0.7,
+                metalness: 0.1
+            });
             gradaIzq = new THREE.Mesh(
                 new THREE.BoxGeometry(altoGrada, 3, anchoGrada / 3), 
                 materialGradasIzq
@@ -368,7 +378,11 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
             );
             gradaIzq.rotation.y = Math.PI / 2;
 
-            const materialGradasDer = new THREE.MeshBasicMaterial({ color: colorGradasDer });
+            const materialGradasDer = new THREE.MeshStandardMaterial({ 
+                color: colorGradasDer,
+                roughness: 0.7,
+                metalness: 0.1
+            });
             gradaDer = new THREE.Mesh(
                 new THREE.BoxGeometry(altoGrada, 3, anchoGrada / 3), 
                 materialGradasDer
@@ -381,6 +395,10 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
             gradaDer.rotation.y = -Math.PI / 2;
         }
 
+        gradaDer.castShadow = true;
+        gradaDer.receiveShadow = true;
+        gradaIzq.castShadow = true;
+        gradaIzq.receiveShadow = true;
         gradas.push(gradaIzq);
         gradas.push(gradaDer);
         scene.add(gradaIzq);
@@ -389,19 +407,22 @@ function crearGradas(colorIzq1, colorIzq2, colorDer1, colorDer2) {
 }
 
 // Función para crear espectadores
-function crearEspectadores() {
+function crearEspectadores(side) {
     // Limpiar espectadores existentes
-    espectadoresIzq.forEach(e => {
-        scene.remove(e.cuerpo);
-        scene.remove(e.cabeza);
-    });
+    if (side === 'ALL' || side === 'left'){
+        espectadoresIzq.forEach(e => {
+            scene.remove(e.cuerpo);
+            scene.remove(e.cabeza);
+        });
     espectadoresIzq = [];
-
-    espectadoresDer.forEach(e => {
-        scene.remove(e.cuerpo);
-        scene.remove(e.cabeza);
-    });
-    espectadoresDer = [];
+    }
+    if (side === 'ALL' || side === 'right'){
+        espectadoresDer.forEach(e => {
+            scene.remove(e.cuerpo);
+            scene.remove(e.cabeza);
+        });
+        espectadoresDer = [];
+    }
 
     let espectadoresPorGradaLocalVar;
 
@@ -415,72 +436,87 @@ function crearEspectadores() {
 
     for (let fila = 0; fila < numeroGradas - 1; fila++) {
         for (let i = -(espectadoresPorGradaLocalVar / 2); i <= espectadoresPorGradaLocalVar / 2; i++) {
-            // Espectadores izquierda
             
-
-
             const rIzq = getRandomColor(0, 128);
             const gIzq = getRandomColor(0, 255);
             const bIzq = getRandomColor(128, 255);
             const colorAleatorioIzq = new THREE.Color(`rgb(${rIzq}, ${gIzq}, ${bIzq})`);
-            const materialEspectador = new THREE.MeshBasicMaterial({ color: colorAleatorioIzq });
             
-            let cuerpo = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
-                materialEspectador
-            );
-            let cabeza = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3, 8, 8), 
-                materialEspectador
-            );
             
-            cuerpo.position.set(
-                izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
-                fila + 0.5, 
-                i * 1.5
-            );
-            cabeza.position.set(
-                izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
-                fila + 1.2, 
-                i * 1.5
-            );
 
-            scene.add(cuerpo);
-            scene.add(cabeza);
-            espectadoresIzq.push({ cuerpo, cabeza });
-
-            // Espectadores derecha
-            
-    
             const rDer = getRandomColor(128, 255); // Mayor énfasis en los tonos rojos
             const gDer = getRandomColor(0, 255);
             const bDer = getRandomColor(0, 128);
             const colorAleatorioDer = new THREE.Color(`rgb(${rDer}, ${gDer}, ${bDer})`);
-            const materialEspectadorDer = new THREE.MeshBasicMaterial({ color: colorAleatorioDer });
-
-            let cuerpoDer = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
-                materialEspectadorDer
-            );
-            let cabezaDer = new THREE.Mesh(
-                new THREE.SphereGeometry(0.3, 8, 8), 
-                materialEspectadorDer
-            );
             
-            cuerpoDer.position.set(
-                derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
-                fila + 0.5, 
-                i * 1.5
-            );
-            cabezaDer.position.set(
-                derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
-                fila + 1.2, 
-                i * 1.5
-            );
+            let materialEspectadorIzq = new THREE.MeshToonMaterial({ color: colorAleatorioIzq });
+            let materialEspectadorDer = new THREE.MeshToonMaterial({ color: colorAleatorioDer});
 
-            scene.add(cuerpoDer);
-            scene.add(cabezaDer);
-            espectadoresDer.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
+            
+            if (side === 'right'){
+                materialEspectadorDer = new THREE.MeshToonMaterial({ color: colorAleatorioIzq });;
+            }else if (side === 'left'){
+                materialEspectadorIzq = new THREE.MeshToonMaterial({ color: colorAleatorioDer});;
+            }else {
+                
+            }
+            // Espectadores izquierda
+            
+            if (side === 'ALL' || side === 'left'){
+                let cuerpo = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
+                    materialEspectadorIzq
+                );
+                let cabeza = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.3, 8, 8), 
+                    materialEspectadorIzq
+                );
+                
+                cuerpo.position.set(
+                    izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
+                    fila + 0.5, 
+                    i * 1.5
+                );
+                cabeza.position.set(
+                    izquerdaCampo - (anchoGrada / 2) - 0.75 - (fila * anchoGrada), 
+                    fila + 1.2, 
+                    i * 1.5
+                );
+                cuerpo.castShadow = true;
+                cabeza.castShadow = true;
+                scene.add(cuerpo);
+                scene.add(cabeza);
+                espectadoresIzq.push({ cuerpo, cabeza });
+            }
+
+            // Espectadores derecha
+            if (side === 'ALL' || side === 'right'){
+
+                let cuerpoDer = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.2, 0.2, 1, 8), 
+                    materialEspectadorDer
+                );
+                let cabezaDer = new THREE.Mesh(
+                    new THREE.SphereGeometry(0.3, 8, 8), 
+                    materialEspectadorDer
+                );
+                
+                cuerpoDer.position.set(
+                    derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
+                    fila + 0.5, 
+                    i * 1.5
+                );
+                cabezaDer.position.set(
+                    derechaCampo + (anchoGrada / 2) + 0.75 + (fila * anchoGrada), 
+                    fila + 1.2, 
+                    i * 1.5
+                );
+                cuerpoDer.castShadow = true;
+                cabezaDer.castShadow = true;
+                scene.add(cuerpoDer);
+                scene.add(cabezaDer);
+                espectadoresDer.push({ cuerpo: cuerpoDer, cabeza: cabezaDer });
+            }
         }
     }
 }
@@ -498,11 +534,11 @@ function crearFarola(x, z) {
     poste.position.set(x, altura_farola/2, z);
 
     // Luz de la farola
-    const farolLight = new THREE.PointLight(0xfffdd0, 3.5, 15, 1); // Color cálido
+    const farolLight = new THREE.PointLight(0xfffdd0, 3.5, 17, 1); // Color cálido
     farolLight.position.set(x, altura_farola-0.5, z);
     farolLight.castShadow = true;
-    farolLight.shadow.mapSize.width = 1024;
-    farolLight.shadow.mapSize.height = 1024;
+    farolLight.shadow.mapSize.width = 256;
+    farolLight.shadow.mapSize.height = 256;
     farolLight.shadow.camera.near = 0.5;
     farolLight.shadow.camera.far = 20;
     
@@ -553,22 +589,26 @@ function updateFieldGeometry() {
     scene.remove(paredIzq)
     paredIzq = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredIzq.position.set(izquerdaCampo - (anchoPared / 2), 1, 0);
+    paredIzq.castShadow = true;
     scene.add(paredIzq);
 
     scene.remove(paredDer)
     paredDer = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredDer.position.set(derechaCampo + (anchoPared / 2), 1, 0);
+    paredDer.castShadow = true;
     scene.add(paredDer);
 
     // Actualizar porterías
     scene.remove(porteriaIzq);
     porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaIzq.position.set(0, 1, norteCampo);
+    porteriaIzq.castShadow = true;
     scene.add(porteriaIzq);
 
     scene.remove(porteriaDer);
     porteriaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaDer.position.set(0, 1, surCampo);
+    porteriaDer.castShadow = true;
     scene.add(porteriaDer);
 
     // Actualizar líneas del campo
@@ -594,11 +634,13 @@ function updateFieldGeometry() {
     scene.remove(paddleLeft);
     paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
     paddleLeft.position.set(0, 1, surCampo + 0.25);
+    paddleLeft.castShadow = true;
     scene.add(paddleLeft);
 
     scene.remove(paddleRight);
     paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
+    paddleRight.castShadow = true;
     scene.add(paddleRight);
 
     // Actualizar farolas
@@ -615,7 +657,7 @@ function updateFieldGeometry() {
     crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
 
     // Actualizar espectadores
-    crearEspectadores();
+    crearEspectadores('ALL');
 }
 
 function palasUpdate(side){
@@ -625,6 +667,7 @@ function palasUpdate(side){
         scene.remove(paddleLeft);
         paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
         paddleLeft.position.set(0, 1, surCampo + 0.25);
+        paddleLeft.castShadow = true;
         scene.add(paddleLeft);
 
     }
@@ -632,6 +675,7 @@ function palasUpdate(side){
         scene.remove(paddleRight);
         paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
         paddleRight.position.set(0, 1, norteCampo - 0.25);
+        paddleRight.castShadow = true;
         scene.add(paddleRight);
 
     }
@@ -639,11 +683,13 @@ function palasUpdate(side){
         scene.remove(paddleLeft);
         paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
         paddleLeft.position.set(0, 1, surCampo + 0.25);
+        paddleLeft.castShadow = true;
         scene.add(paddleLeft);
     
         scene.remove(paddleRight);
         paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
         paddleRight.position.set(0, 1, norteCampo - 0.25);
+        paddleRight.castShadow = true;
         scene.add(paddleRight);
     }
 }
@@ -735,7 +781,7 @@ function createUI() {
             scoreDisplay.textContent = `${scoreLeft} - ${scoreRight}`;
             gameOver();
             crearGradas(0xADD8E6, 0x4682B4, 0xFFB6C1, 0xCD5C5C);
-            crearEspectadores();
+            crearEspectadores('ALL');
             palasUpdate('ALL');
             isGameRunning = false;
             playButton.textContent = 'Jugar';
@@ -1071,10 +1117,51 @@ function hacerDesaparecerEspectadores(altura,jumpInMs, side) {
                 .start();
 
         });
-
-
     }
 }
+}
+
+function hacerSaltarEspectadoresFinal(side) {
+    if (endScene){
+        if (side === 'right'){
+            espectadoresDer.forEach(({ cuerpo, cabeza }) => {
+                let alturaSalto = Math.random() * (5 - 1) + 1; // Salto aleatorio entre 1 y 3 unidades
+    
+                new TWEEN.Tween(cuerpo.position)
+                    .to({ y: cuerpo.position.y + alturaSalto }, 300) 
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true) // Vuelve a bajar
+                    .repeat(15) 
+                    .start();
+    
+                new TWEEN.Tween(cabeza.position)
+                    .to({ y: cabeza.position.y + alturaSalto }, 300)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true)
+                    .repeat(15)
+                    .start();
+            });
+        } else if (side === 'left'){
+
+            espectadoresIzq.forEach(({ cuerpo, cabeza }) => {
+                let alturaSalto = Math.random() * (5 - 1) + 1; // Salto aleatorio entre 1 y 3 unidades
+    
+                new TWEEN.Tween(cuerpo.position)
+                    .to({ y: cuerpo.position.y + alturaSalto }, 300) 
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true) // Vuelve a bajar
+                    .repeat(15) 
+                    .start();
+    
+                new TWEEN.Tween(cabeza.position)
+                    .to({ y: cabeza.position.y + alturaSalto }, 300)
+                    .easing(TWEEN.Easing.Quadratic.Out)
+                    .yoyo(true)
+                    .repeat(15)
+                    .start();
+                });
+            }
+        }
 }
 
 
@@ -1166,8 +1253,12 @@ function checkWin(side) {
         }, 2000);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             crearGradas(0xFFB6C1, 0xCD5C5C, 0xFFB6C1, 0xCD5C5C);
-            palasUpdate('right');
-            resetBall();
+            crearEspectadores('left');
+            //palasUpdate('right');
+            //resetBall();
+        }, 3500);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            hacerSaltarEspectadoresFinal('left');
         }, 4000);
         setTimeout(() => {
             resetCamera();
@@ -1202,8 +1293,12 @@ function checkWin(side) {
         }, 1500);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             crearGradas(0xADD8E6, 0x4682B4, 0xADD8E6, 0x4682B4);
-            palasUpdate('left');
-            resetBall();
+            crearEspectadores('right');
+            //palasUpdate('left');
+            //resetBall();
+        }, 3500);
+        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
+            hacerSaltarEspectadoresFinal('right');
         }, 4000);
         setTimeout(() => {
             resetCamera();
