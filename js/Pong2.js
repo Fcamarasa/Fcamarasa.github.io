@@ -29,6 +29,7 @@ let espectadoresDer = [];
 //Variables de valores de la geometría
 let anchoCampo = 15;
 let altoCampo = 25;
+let altura_farola = 8;
 
 let numeroGradas = 4;
 let altoGrada = altoCampo;
@@ -136,6 +137,8 @@ function init()
 {
     // Motor de render
     renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.shadowMap.enabled = true; // Habilitar sombras
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Mejor calidad de sombras
     renderer.setSize( window.innerWidth, window.innerHeight );
     document.getElementById('container').appendChild( renderer.domElement );
 
@@ -149,9 +152,16 @@ function init()
     camera.lookAt( new THREE.Vector3(0, 0, 0) );
 
     // Luz
-    const luz = new THREE.DirectionalLight(0xffffff, 1.0);
-    luz.position.set(5, 10, 5);
+    const luz = new THREE.DirectionalLight(0xffffff, 0.5);
+    luz.position.set(5, 15, 5);
+    luz.castShadow = true;
+    luz.shadow.mapSize.width = 2048;
+    luz.shadow.mapSize.height = 2048;
     scene.add(luz);
+    
+    // Luz ambiental
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.5);
+    scene.add(ambientLight);
 
     // Manejar redimensionado
     window.addEventListener('resize', function() {
@@ -163,6 +173,12 @@ function init()
     TWEEN.now = function () {
         return performance.now();
     };
+
+    // Habilitar sombras
+    renderer.shadowMap.autoUpdate = true;
+    renderer.shadowMap.needsUpdate = true;
+    
+
 
     // Cargar sonido
     goalSound = new Audio('./sounds/pitbull-fireball.mp3');
@@ -200,6 +216,9 @@ function loadScene()
     // Suelo
     suelo = new THREE.Mesh( new THREE.BoxGeometry(anchoCampo + (numeroGradas*anchoGrada) + 30, 1, altoCampo + 12.5), materialSuelo );
     suelo.position.set(0, -0.6, 0);
+    suelo.castShadow = true;
+    suelo.receiveShadow = true;
+
     scene.add(suelo);
 
     // Líneas del campo
@@ -224,6 +243,8 @@ function loadScene()
         materialCesped
     );
     cesped.position.set(0, -0.1, 0);
+    cesped.castShadow = true;
+    cesped.receiveShadow = true;
     scene.add(cesped);
 
     // Farolas en las esquinas
@@ -238,10 +259,14 @@ function loadScene()
     // Paredes laterales
     paredIzq = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredIzq.position.set(izquerdaCampo - (anchoPared / 2), 1, 0);
+    paredIzq.castShadow = true;
+    paredIzq.receiveShadow = true;
     scene.add(paredIzq);
 
     paredDer = new THREE.Mesh( new THREE.BoxGeometry(anchoPared, profundidadPared, altoCampo), materialPared );
     paredDer.position.set(derechaCampo + (anchoPared / 2), 1, 0);
+    paredDer.castShadow = true;
+    paredDer.receiveShadow = true;
     scene.add(paredDer);
 
     // Gradas bien orientadas
@@ -253,24 +278,29 @@ function loadScene()
     // Porterías con redes
     porteriaIzq = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaIzq.position.set(0, 1, norteCampo);
+    porteriaIzq.castShadow = true;
     scene.add(porteriaIzq);
 
     porteriaDer = new THREE.Mesh(new THREE.BoxGeometry(anchoCampo, 2, 0.01), materialRed);
     porteriaDer.position.set(0, 1, surCampo);
+    porteriaDer.castShadow = true;
     scene.add(porteriaDer);
 
     // Palas del Pong en las porterías
     paddleLeft = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala);
     paddleLeft.position.set(0, 1, surCampo + 0.25);
+    paddleLeft.castShadow = true;
     scene.add(paddleLeft);
 
     paddleRight = new THREE.Mesh(new THREE.BoxGeometry(5, 2, 0.5), materialPala2);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
+    paddleRight.castShadow = true;
     scene.add(paddleRight);
 
     // Pelota
     ball = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), materialPelota);
     ball.position.set(0, 0.5, 0);
+    ball.castShadow = true;
     scene.add(ball);
 
 
@@ -462,17 +492,31 @@ function crearFarola(x, z) {
     
     // Poste
     const poste = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.1, 0.1, 8),
+        new THREE.CylinderGeometry(0.1, 0.1, altura_farola),
         materialMetal
     );
-    poste.position.set(x, 4, z);
+    poste.position.set(x, altura_farola/2, z);
+
+    // Luz de la farola
+    const farolLight = new THREE.PointLight(0xfffdd0, 3.5, 15, 1); // Color cálido
+    farolLight.position.set(x, altura_farola-0.5, z);
+    farolLight.castShadow = true;
+    farolLight.shadow.mapSize.width = 1024;
+    farolLight.shadow.mapSize.height = 1024;
+    farolLight.shadow.camera.near = 0.5;
+    farolLight.shadow.camera.far = 20;
     
     // Lámpara
     const lampara = new THREE.Mesh(
-        new THREE.BoxGeometry(0.5, 0.3, 0.5),
-        new THREE.MeshStandardMaterial({ color: 0xffff00 })
+        new THREE.SphereGeometry(0.3, 16, 16),
+        new THREE.MeshStandardMaterial({ 
+            color: 0xffff00,
+            emissive: 0xffff00,
+            emissiveIntensity: 0.5
+        })
     );
-    lampara.position.set(x, 8, z);
+    lampara.castShadow = true;
+    lampara.position.set(x, altura_farola, z);
     lampara.rotation.y = Math.PI/4;
     
     // Base
@@ -482,6 +526,7 @@ function crearFarola(x, z) {
     );
     base.position.set(x, 0.25, z);
     
+    grupo.add(farolLight);
     grupo.add(poste);
     grupo.add(lampara);
     grupo.add(base);
@@ -796,10 +841,15 @@ function createUI() {
         updateFieldGeometry();
     });
 
+    createSlider('Altura de farola', 4, 12, 1, altura_farola, value => {
+        altura_farola = value;
+        updateFieldGeometry();
+    });
+
     createSlider('Fondo de escena', 0, 4, 1, fondo, value => {
         fondo = value;
         actualizarFondo(fondo);
-    });
+    });    
 
     // Mensaje de ganador mejorado
     winnerMessage = document.createElement('div');
@@ -1416,9 +1466,6 @@ function render(time) {
 
 // #TODO focos y luces
 // #TODO Textures
-
-// #TODO que els espectadors siguen de color blau o roig tonos
-// #TODO que la pala també la palme
 
 // #TODO revisar valors incial camps
 // #TODO revisar temps animació victoria
