@@ -75,14 +75,14 @@ const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalnes
 const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
 const materialSuelo = new THREE.MeshStandardMaterial({ 
     color: 0x8B4513, // SaddleBrown
-    metalness: 0.3,
-    roughness: 0.9
+    metalness: 0.6,
+    roughness: 0.7
 });
 const materialLinea = new THREE.LineBasicMaterial({ color: 0xffffff });
 const materialCesped = new THREE.MeshStandardMaterial({ 
     color: 0x005500, 
     roughness: 0.9,
-    metalness: 0.1
+    metalness: 0.4
 });
 const materialPared = new THREE.MeshBasicMaterial({ color: 0x222222 });
 const materialRed = new THREE.MeshBasicMaterial({ color: 0xffffff, wireframe: true });
@@ -1131,14 +1131,14 @@ function hacerSaltarEspectadoresFinal(side) {
                     .to({ y: cuerpo.position.y + alturaSalto }, 300) 
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .yoyo(true) // Vuelve a bajar
-                    .repeat(15) 
+                    .repeat(17) 
                     .start();
     
                 new TWEEN.Tween(cabeza.position)
                     .to({ y: cabeza.position.y + alturaSalto }, 300)
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .yoyo(true)
-                    .repeat(15)
+                    .repeat(17)
                     .start();
             });
         } else if (side === 'left'){
@@ -1150,14 +1150,14 @@ function hacerSaltarEspectadoresFinal(side) {
                     .to({ y: cuerpo.position.y + alturaSalto }, 300) 
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .yoyo(true) // Vuelve a bajar
-                    .repeat(15) 
+                    .repeat(17) 
                     .start();
     
                 new TWEEN.Tween(cabeza.position)
                     .to({ y: cabeza.position.y + alturaSalto }, 300)
                     .easing(TWEEN.Easing.Quadratic.Out)
                     .yoyo(true)
-                    .repeat(15)
+                    .repeat(17)
                     .start();
                 });
             }
@@ -1259,7 +1259,7 @@ function checkWin(side) {
         }, 3500);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             hacerSaltarEspectadoresFinal('left');
-        }, 4000);
+        }, 4250);
         setTimeout(() => {
             resetCamera();
         }, 5000);
@@ -1272,14 +1272,12 @@ function checkWin(side) {
         setTimeout(() => {
             resetCamera();
         }, 8500);
-        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
-            endScene = false;
-        }, 10500);
         setTimeout(() => {
+            endScene = false;
             stopEndSound();
             playButton.textContent = 'Volver a jugar';
             goalscored = false;
-        }, 11000);
+        }, 10000);
     } else if (scoreLeft === 3) {
         winnerMessage.textContent = '¡Has ganado!';
         playEndSound(side);
@@ -1299,7 +1297,7 @@ function checkWin(side) {
         }, 3500);
         setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
             hacerSaltarEspectadoresFinal('right');
-        }, 4000);
+        }, 4250);
         setTimeout(() => {
             resetCamera();
         }, 5000);
@@ -1312,14 +1310,12 @@ function checkWin(side) {
         setTimeout(() => {
             resetCamera();
         }, 8500);
-        setTimeout(() => { // Tiempo de espera para que el sonido se haga efecto
-            endScene = false;
-        }, 10500);
         setTimeout(() => {
+            endScene = false;
             stopEndSound();
             playButton.textContent = 'Volver a jugar';
             goalscored = false;
-        }, 11000);
+        }, 10000);
     } else {
         playGoalSound(side);
         moveCameraToGrandstands(side,700);
@@ -1557,10 +1553,8 @@ function render(time) {
 }
 
 
-// #TODO powerups
+// #TODO randomize after goal
 
-// #TODO focos y luces
-// #TODO Textures
 
 // #TODO revisar valors incial camps
 // #TODO revisar temps animació victoria
