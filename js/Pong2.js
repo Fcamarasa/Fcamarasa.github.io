@@ -153,10 +153,10 @@ function init()
 
     // Luz
     const luz = new THREE.DirectionalLight(0xffffff, 0.5);
-    luz.position.set(5, 15, 5);
+    luz.position.set(0, 10, 0);
     luz.castShadow = true;
-    luz.shadow.mapSize.width = 2048;
-    luz.shadow.mapSize.height = 2048;
+    luz.shadow.mapSize.width = 1024;
+    luz.shadow.mapSize.height = 1024;
     scene.add(luz);
     
     // Luz ambiental
