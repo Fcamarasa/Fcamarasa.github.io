@@ -25,6 +25,7 @@ let farolas = [];
 let gradas = [];
 let espectadoresIzq = [];
 let espectadoresDer = [];
+const sliderElements = {};
 
 //Variables de valores de la geometría
 let anchoCampo = 15;
@@ -111,6 +112,7 @@ let isCameraTransition = false;
 let paddleSpeed = 1;
 let isPlaying = false;
 let isGameRunning = false; // Variable para rastrear el estado del juego
+let randomizeAfterGoal = false;
 
 
 
@@ -534,7 +536,7 @@ function crearFarola(x, z) {
     poste.position.set(x, altura_farola/2, z);
 
     // Luz de la farola
-    const farolLight = new THREE.PointLight(0xfffdd0, 3.5, 17, 1); // Color cálido
+    const farolLight = new THREE.PointLight(0xfffdd0, 1.5, 27, 1); // Color cálido
     farolLight.position.set(x, altura_farola-0.5, z);
     farolLight.castShadow = true;
     farolLight.shadow.mapSize.width = 256;
@@ -816,7 +818,7 @@ function createUI() {
     container.appendChild(controlsDiv);
 
     // Función para crear sliders estilizados
-    function createSlider(label, min, max, step, value, onChange) {
+    function createSlider(label, min, max, step, value, onChange, key) {
         const sliderContainer = document.createElement('div');
         sliderContainer.style.margin = '12px 0';
         sliderContainer.style.display = 'flex';
@@ -855,6 +857,11 @@ function createUI() {
             valueDisplay.textContent = this.value;
             onChange(parseFloat(this.value));
         };
+    
+        sliderElements[key] = {
+            slider: slider,
+            display: valueDisplay
+        };
 
         sliderContainer.appendChild(labelElement);
         sliderContainer.appendChild(slider);
@@ -868,35 +875,77 @@ function createUI() {
         derechaCampo = anchoCampo / 2;
         izquerdaCampo = -anchoCampo / 2;
         updateFieldGeometry();
-    });
-
+    }, 'ancho');
+    
     createSlider('Alto del campo', 15, 35, 1, altoCampo, value => {
         altoCampo = value;
         norteCampo = altoCampo / 2;
         surCampo = -altoCampo / 2;
         updateFieldGeometry();
-    });
-
+    }, 'alto');
+    
     createSlider('Número de gradas', 2, 7, 1, numeroGradas, value => {
         numeroGradas = value;
         updateFieldGeometry();
-    });
-
-    createSlider('Espectadores', 2, 25, 1, espectadoresPorGrada, value => {
+    }, 'gradas');
+    
+    createSlider('Espectadores', 2, 25, 1, espectadoresPorGrada + 1, value => {
         espectadoresPorGrada = value - 1;
         updateFieldGeometry();
-    });
-
+    }, 'espectadores');
+    
     createSlider('Altura de farola', 4, 12, 1, altura_farola, value => {
         altura_farola = value;
         updateFieldGeometry();
-    });
-
+    }, 'farola');
+    
     createSlider('Fondo de escena', 0, 4, 1, fondo, value => {
         fondo = value;
         actualizarFondo(fondo);
-    });    
+    }, 'fondo');   
 
+    // Botón de Randomize After Goal dentro del panel de controles
+    const randomizeContainer = document.createElement('div');
+    randomizeContainer.style.marginTop = '20px';
+    randomizeContainer.style.textAlign = 'center';
+    controlsDiv.appendChild(randomizeContainer);
+
+    const randomizeButton = document.createElement('button');
+    randomizeButton.textContent = 'Aleatorizar campo tras gol: Off';
+    Object.assign(randomizeButton.style, {
+        padding: '10px 20px',
+        border: 'none',
+        borderRadius: '5px',
+        backgroundColor: '#123456',
+        color: 'white',
+        cursor: 'pointer',
+        transition: 'all 0.3s',
+        fontSize: '14px',
+        fontWeight: 'bold'
+    });
+
+    // Función para actualizar apariencia
+    const updateButtonStyle = () => {
+        if(randomizeAfterGoal) {
+            randomizeButton.style.backgroundColor = '#4CAF50';
+            randomizeButton.textContent = 'Aleatorizar campo tras gol: On';
+        } else {
+            randomizeButton.style.backgroundColor = '#123456';
+            randomizeButton.textContent = 'Aleatorizar campo tras gol: Off';
+        }
+    };
+
+    randomizeButton.onmouseover = () => {
+        if(!randomizeAfterGoal) randomizeButton.style.backgroundColor = '#777';
+    };
+    randomizeButton.onmouseout = () => updateButtonStyle();
+
+    randomizeButton.onclick = () => {
+        randomizeAfterGoal = !randomizeAfterGoal;
+        updateButtonStyle();
+    };
+
+    randomizeContainer.appendChild(randomizeButton)
     // Mensaje de ganador mejorado
     winnerMessage = document.createElement('div');
     winnerMessage.style.position = 'absolute';
@@ -940,11 +989,35 @@ function startGameTrue() {
 
 //Función para iniciar el juego tras gol (sin reiniciar marcador)
 function startGame() {
-    isPlaying = true;
-    resetBall();
-    ballSpeed.x = Math.random() > 0.5 ? 0.1 : -0.1;
-    ballSpeed.z = 0.25;
-    winnerMessage.style.display = 'none';
+
+
+
+    if (randomizeAfterGoal) { 
+
+        setTimeout(() => { 
+            resetBall();
+            randomizeCampValues(); 
+        }, 250);
+        setTimeout(() => { 
+            isPlaying = true;
+
+            ballSpeed.x = Math.random() > 0.5 ? 0.1 : -0.1;
+            ballSpeed.z = 0.25;
+            winnerMessage.style.display = 'none';
+        }, 750);
+
+    
+    }
+    else {
+        resetBall();
+        setTimeout(() => { 
+            isPlaying = true;
+            ballSpeed.x = Math.random() > 0.5 ? 0.1 : -0.1;
+            ballSpeed.z = 0.25;
+            winnerMessage.style.display = 'none';
+        }, 500);
+    }
+
 }
 
 // Función para resetear el balón al centro del campo
@@ -955,6 +1028,52 @@ function resetBall() {
 
     paddleLeft.position.set(0, 1, surCampo + 0.25);
     paddleRight.position.set(0, 1, norteCampo - 0.25);
+
+}
+
+function randomizeCampValues() {
+    let espectadoresPorAltoCampo = espectadoresPorGrada/altoCampo;
+
+    let altoLocal = Math.floor(Math.random() * (35 - 15 + 1)) + 15;
+    // Generar nuevos valores aleatorios dentro de los rangos de los sliders
+    // El +1 es para tener en cuenta el floor, 
+    const nuevosValores = {
+        ancho: Math.floor(Math.random() * (30 - 10 + 1)) + 10,
+        alto: altoLocal,
+        //gradas: Math.floor(Math.random() * (7 - 2 + 1)) + 2,
+        espectadores: Math.floor(espectadoresPorAltoCampo*altoLocal),
+        farola: Math.floor(Math.random() * (12 - 4 + 1)) + 4,
+        //fondo: Math.floor(Math.random() * 5)
+    };
+
+    // Actualizar sliders
+    Object.keys(nuevosValores).forEach(key => {
+        if(sliderElements[key]) {
+            sliderElements[key].slider.value = nuevosValores[key];
+            sliderElements[key].display.textContent = nuevosValores[key];
+        }
+    });
+
+    // Actualizar variables internas
+    anchoCampo = nuevosValores.ancho;
+    altoCampo = nuevosValores.alto;
+    //numeroGradas = nuevosValores.gradas;
+    espectadoresPorGrada = nuevosValores.espectadores ;
+    altura_farola = nuevosValores.farola;
+    //fondo = nuevosValores.fondo;
+
+        
+    // Actualizar variables derivadas
+    derechaCampo = anchoCampo / 2;
+    izquerdaCampo = -anchoCampo / 2;
+    norteCampo = altoCampo / 2;
+    surCampo = -altoCampo / 2;
+
+    // Aplicar cambios al campo
+    updateFieldGeometry();
+    //actualizarFondo(fondo);
+            
+    
 }
 
 // Función para hacer saltar a los espectadores cuando no hay gol
