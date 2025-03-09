@@ -75,7 +75,7 @@ function generateConfettiTexture() {
 const materialMetal = new THREE.MeshStandardMaterial({ color: 0x808080, metalness: 0.8, roughness: 0.5 });
 const bordilloMaterial = new THREE.MeshStandardMaterial({ color: 0x444444 });
 const materialSuelo = new THREE.MeshStandardMaterial({ 
-    color: 0x8B4513, // SaddleBrown
+    color: 0x8B4513,
     metalness: 0.6,
     roughness: 0.7
 });
@@ -97,7 +97,7 @@ const materialPelota = new THREE.MeshStandardMaterial({
 let scoreDisplay, winnerMessage, firstTo3Message, controlesMessage;
 let playButton;
 
-// Variables de estado
+// Variables de estado del juego
 let goalSound, goalSound2;
 let winSound, loseSound;
 let ballSpeed = { x: 0, z: 0 };
@@ -111,7 +111,7 @@ let goalscored = false;
 let isCameraTransition = false;
 let paddleSpeed = 1;
 let isPlaying = false;
-let isGameRunning = false; // Variable para rastrear el estado del juego
+let isGameRunning = false;
 let randomizeAfterGoal = false;
 
 
@@ -182,7 +182,7 @@ function init()
     
 
 
-    // Cargar sonido
+    // Cargar sonidos
     goalSound = new Audio('./sounds/pitbull-fireball.mp3');
     goalSound.volume = 0.5;
 
@@ -990,8 +990,6 @@ function startGameTrue() {
 //Función para iniciar el juego tras gol (sin reiniciar marcador)
 function startGame() {
 
-
-
     if (randomizeAfterGoal) { 
 
         setTimeout(() => { 
@@ -1670,10 +1668,3 @@ function render(time) {
 
     requestAnimationFrame(render);
 }
-
-
-// #TODO randomize after goal
-
-
-// #TODO revisar valors incial camps
-// #TODO revisar temps animació victoria
