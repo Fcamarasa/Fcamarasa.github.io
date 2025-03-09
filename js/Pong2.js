@@ -746,7 +746,7 @@ function createUI() {
     messageContainer.appendChild(firstTo3Message);
 
     controlesMessage = document.createElement("div");
-    controlesMessage.textContent = "Controles: Usa las flechas ← → para mover tu pala";
+    controlesMessage.textContent = "Controles: Usa las flechas ← → o las teclas A/D para mover tu pala";
     controlesMessage.style.color = '#ccc';
     controlesMessage.style.fontSize = '14px';
     messageContainer.appendChild(controlesMessage);
@@ -1332,12 +1332,15 @@ function updateGame() {
         }
     }
     if (!goalscored){
-        if (keys["ArrowLeft"] && paddleRight.position.x > izquerdaCampo + 2.5) {
+
+        if ((keys["ArrowLeft"] || keys["a"]) && paddleRight.position.x > izquerdaCampo + 2.5) {
             paddleRight.position.x -= paddleSpeed;
         }
-        if (keys["ArrowRight"] && paddleRight.position.x < derechaCampo - 2.5) {
+        if ((keys["ArrowRight"] || keys["d"]) && paddleRight.position.x < derechaCampo - 2.5) {
             paddleRight.position.x += paddleSpeed;
         }
+
+
     }
 
     if (ballSpeed.z > 0){
